@@ -11,19 +11,14 @@ void rmt_listen_rx_task(void *pvParameter)
     
     rmt_get_ringbuf_handle(channel, &rb);
     rmt_rx_start(channel, 1);
-    while(rb) {
+    while(1) {
         size_t rx_size = 0;
-        //try to receive data from ringbuffer.
-        //RMT driver will push all the data it receives to its ringbuffer.
-        //We just need to parse the value and return the spaces of ringbuffer.
         rmt_item32_t* item = (rmt_item32_t*) xRingbufferReceive(rb, &rx_size, 1000);
         if(item) {
-            ESP_LOGI(TAG, "d0: %d l0: %d d1: %d l1: %d", item->duration0, item->level0, item->duration1, item->level1);
+            ReceiverChannels.ch1 = (uint16_t) item->duration0;
             vRingbufferReturnItem(rb, (void*) item);
         }
     }
-    ESP_LOGI(TAG, "task delete");
-    vTaskDelete(NULL);
 }
 
 void rmt_init_rx() {

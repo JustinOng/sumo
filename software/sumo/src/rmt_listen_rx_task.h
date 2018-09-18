@@ -15,6 +15,10 @@
 #define RECEIVER_CH1_CHANNEL 0
 #define RECEIVER_CH1_GPIO_NUM 12
 
+volatile struct {
+    uint16_t ch1;
+} ReceiverChannels;
+
 void rmt_listen_rx_task(void *pvParameter);
 void rmt_init_rx();
 
