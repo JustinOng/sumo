@@ -2,6 +2,8 @@
 
 static const char* TAG = "RMT";
 
+uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM] = {0};
+
 void rmt_listen_rx_task(void *pvParameter) {
     // this task listens to the 3 channels of the receiver and outputs to the global struct receiver
     int channel = RECEIVER_CH1_CHANNEL;
@@ -14,9 +16,10 @@ void rmt_listen_rx_task(void *pvParameter) {
         size_t rx_size = 0;
         rmt_item32_t* item = (rmt_item32_t*) xRingbufferReceive(rb, &rx_size, 1000);
         if(item) {
-            ReceiverChannels.ch1 = (uint16_t) item->duration0;
+            ReceiverChannels[0] = (uint16_t) item->duration0;
             vRingbufferReturnItem(rb, (void*) item);
         }
+        vTaskDelay(1);
     }
 }
 

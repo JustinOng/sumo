@@ -26,9 +26,7 @@
 #define RECEIVER_CH3_CHANNEL 2
 #define RECEIVER_CH3_GPIO_NUM 14
 
-volatile struct {
-    uint16_t ch1;
-} ReceiverChannels;
+extern uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM];
 
 void rmt_listen_rx_task(void *pvParameter);
 void rmt_init_rx(void);
