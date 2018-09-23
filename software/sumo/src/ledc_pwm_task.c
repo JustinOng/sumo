@@ -20,7 +20,7 @@ void ledc_pwm_task(void *pvParameter) {
 
     while(1) {
         for (i = 0; i < MOTOR_CHANNELS_NUM; i++) {
-            ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, MotorControl[i]);
+            ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0x3FF & MotorControl[i]);
             ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
         }
         vTaskDelay(1);

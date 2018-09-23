@@ -4,24 +4,39 @@
 #include "sdkconfig.h"
 #include "esp_log.h"
 
+#include "config.h"
 #include "rmt_listen_rx_task.h"
 #include "ledc_pwm_task.h"
 
 static const char* TAG = "main";
 
-uint16_t scaleReceiver(uint16_t x) {
-    uint16_t in_min = 8000;
-    uint16_t in_max = 16000;
-    uint16_t out_min = 0;
-    uint16_t out_max = 1023;
-    // scales a input from [in_min, in_max] to [out_min, out_max]
+uint16_t scaleReceiver(uint16_t input) {
+    // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_DEADZONE and returns
+    // a uint16_t where the highest bit denotes direction and the lower 10 bits denote speed
+    // map function taken from https://www.arduino.cc/reference/en/language/functions/math/map/
+    const uint16_t out_min = 0;
+    const uint16_t out_max = 1023;
 
-    if (x < in_min) return out_min;
-    if (x > in_max) return out_max;
+    // if input out of range force it to be within
+    if (input < RECEIVER_CH_MIN) {
+        input = RECEIVER_CH_MIN;
+    } else if (input > RECEIVER_CH_MAX) {
+        input = RECEIVER_CH_MAX;
+    }
+    
+    // if input within deadzone, return 0
+    if (input > (RECEIVER_CH_CENTER-RECEIVER_CH_DEADZONE) && input < (RECEIVER_CH_CENTER+RECEIVER_CH_DEADZONE)) {
+        return 0;
+    }
 
-    // taken from https://www.arduino.cc/reference/en/language/functions/math/map/
-
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    // scale a value from [RECEIVER_CH_MIN, RECEIVER_CH_CENTER] to [out_min, out_max]
+    if (input < RECEIVER_CH_CENTER) {
+        return 0x8000 | ((RECEIVER_CH_CENTER - input) * (out_max - out_min) / (RECEIVER_CH_CENTER - RECEIVER_CH_MIN) + out_min);
+    } else
+    // scale a value from [RECEIVER_CH_CENTER, RECEIVER_CH_MAX] to [out_min, out_max]
+    {
+        return (input - RECEIVER_CH_CENTER) * (out_max - out_min) / (RECEIVER_CH_MAX - RECEIVER_CH_CENTER) + out_min;
+    }
 }
 
 void write_motor_task(void *pvParameter) {
@@ -33,7 +48,6 @@ void write_motor_task(void *pvParameter) {
 
 void dump_task(void *pvParameter) {
     while(1) {
-        ESP_LOGI(TAG, "%d", MotorControl[0]);
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
 }
