@@ -3,10 +3,12 @@
 static const char* TAG = "RMT";
 
 uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM] = {0};
+const uint8_t RECEIVER_CHANNELS[RECEIVER_CHANNELS_NUM] = { 0, 1, 2 };
+const uint8_t RECEIVER_GPIOS[RECEIVER_CHANNELS_NUM] = { 12, 13, 14 };
 
 void rmt_listen_rx_task(void *pvParameter) {
     // this task listens to the 3 channels of the receiver and outputs to the global struct receiver
-    int channel = RECEIVER_CH1_CHANNEL;
+    int channel = RECEIVER_CHANNELS[0];
     rmt_init_rx();
     RingbufHandle_t rb = NULL;
     
@@ -26,22 +28,11 @@ void rmt_listen_rx_task(void *pvParameter) {
 void rmt_init_rx(void) {
     uint8_t i;
 
-    rmt_config_t rmt_channels[RECEIVER_CHANNELS_NUM] = {
-        {
-            .channel = RECEIVER_CH1_CHANNEL,
-            .gpio_num = RECEIVER_CH1_GPIO_NUM
-        },
-        {
-            .channel = RECEIVER_CH2_CHANNEL,
-            .gpio_num = RECEIVER_CH2_GPIO_NUM
-        },
-        {
-            .channel = RECEIVER_CH3_CHANNEL,
-            .gpio_num = RECEIVER_CH3_GPIO_NUM
-        }
-    };
+    rmt_config_t rmt_channels[RECEIVER_CHANNELS_NUM] = {};
 
     for (i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
+        rmt_channels[i].channel = RECEIVER_CHANNELS[i];
+        rmt_channels[i].gpio_num = RECEIVER_GPIOS[i];
         rmt_channels[i].clk_div = RMT_RX_CLK_DIV;
         rmt_channels[i].mem_block_num = 1;
         rmt_channels[i].rmt_mode = RMT_MODE_RX;
