@@ -4,11 +4,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/ledc.h"
+#include "driver/gpio.h"
 
 #define MOTOR_CHANNELS_NUM 1
 
 #define MOTOR_LEFT_CHANNEL LEDC_CHANNEL_0
-#define MOTOR_LEFT_GPIO_NUM 27
+#define MOTOR_LEFT_THROTTLE_GPIO_NUM 27
+#define MOTOR_LEFT_DIR_NUM 26
 
 #define LEDC_SPEED_MODE LEDC_LOW_SPEED_MODE
 #define LEDC_TIMER LEDC_TIMER_0
