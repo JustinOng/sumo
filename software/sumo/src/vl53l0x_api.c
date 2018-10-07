@@ -377,9 +377,9 @@ bool vl53l0x_init(struct VL53L0X_Data* c) {
     i2c_master_write_byte(cmd, (c->address << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
     i2c_master_stop(cmd);
 
-    esp_err_t ok = i2c_master_cmd_begin(I2C_NUM_0, cmd, 100/portTICK_PERIOD_MS);
+    esp_err_t ok = i2c_master_cmd_begin(c->port, cmd, 10/portTICK_PERIOD_MS);
     i2c_cmd_link_delete(cmd);
-    if (ok > 0) {
+    if (ok != 0) {
         ESP_LOGI(TAG, "Failed to contact 0x%.2x: %.4x", c->address, ok);
         return false;
     }
