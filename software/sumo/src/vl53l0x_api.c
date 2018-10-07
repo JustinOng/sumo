@@ -357,6 +357,18 @@ bool performSingleRefCalibration(struct VL53L0X_Data* c, uint8_t vhv_init_byte) 
     return true;
 }
 
+void setAddress(struct VL53L0X_Data* c, uint8_t new_addr) {
+    new_addr &= 0x7F;
+
+    esp_err_t ok = writeReg(c, I2C_SLAVE_DEVICE_ADDRESS, new_addr);
+    if (ok == 0) {
+        ESP_LOGI(TAG, "Changed address of 0x%.2x to 0x%.2x", c->address, new_addr);
+        c->address = new_addr;
+    } else {
+        ESP_LOGI(TAG, "Failed to change address: %.2x", ok);
+    }
+}
+
 bool vl53l0x_init(struct VL53L0X_Data* c) {
     uint8_t data;
 
