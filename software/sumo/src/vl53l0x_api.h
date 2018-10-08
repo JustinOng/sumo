@@ -116,9 +116,9 @@ struct SequenceStepTimeouts {
     uint32_t msrc_dss_tcc_us,    pre_range_us,    final_range_us;
 };
 
-bool vl53l0x_init(struct VL53L0X_Data* c);
-void startContinuous(struct VL53L0X_Data* c);
-void setAddress(struct VL53L0X_Data* c, uint8_t new_addr);
-uint16_t readRangeContinuousMillimeters(struct VL53L0X_Data* c);
+esp_err_t vl53l0x_init(struct VL53L0X_Data* c);
+esp_err_t startContinuous(struct VL53L0X_Data* c);
+esp_err_t setAddress(struct VL53L0X_Data* c, uint8_t new_addr);
+esp_err_t readRangeContinuousMillimeters(struct VL53L0X_Data* c, uint16_t* range);
 
 #endif

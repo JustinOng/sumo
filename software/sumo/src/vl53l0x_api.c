@@ -12,7 +12,7 @@ static uint16_t decodeTimeout(uint16_t reg_val);
 static uint16_t encodeTimeout(uint16_t timeout_mclks);
 static uint32_t timeoutMclksToMicroseconds(uint16_t timeout_period_mclks, uint8_t vcsel_period_pclks);
 static uint32_t timeoutMicrosecondsToMclks(uint32_t timeout_period_us, uint8_t vcsel_period_pclks);
-static bool getSpadInfo(struct VL53L0X_Data* c, uint8_t * count, bool * type_is_aperture);
+static esp_err_t getSpadInfo(struct VL53L0X_Data* c, uint8_t * count, bool * type_is_aperture);
 static uint32_t getMeasurementTimingBudget(struct VL53L0X_Data* c);
 
 esp_err_t writeReg(struct VL53L0X_Data* c, uint8_t reg, uint8_t value) {
@@ -115,22 +115,24 @@ static uint16_t encodeTimeout(uint16_t timeout_mclks) {
     }
 }
 
-uint32_t timeoutMclksToMicroseconds(uint16_t timeout_period_mclks, uint8_t vcsel_period_pclks) {
+static uint32_t timeoutMclksToMicroseconds(uint16_t timeout_period_mclks, uint8_t vcsel_period_pclks) {
     uint32_t macro_period_ns = calcMacroPeriod(vcsel_period_pclks);
 
     return ((timeout_period_mclks * macro_period_ns) + (macro_period_ns / 2)) / 1000;
 }
 
-uint32_t timeoutMicrosecondsToMclks(uint32_t timeout_period_us, uint8_t vcsel_period_pclks) {
+static uint32_t timeoutMicrosecondsToMclks(uint32_t timeout_period_us, uint8_t vcsel_period_pclks) {
     uint32_t macro_period_ns = calcMacroPeriod(vcsel_period_pclks);
 
     return (((timeout_period_us * 1000) + (macro_period_ns / 2)) / macro_period_ns);
 }
 
-bool getSpadInfo(struct VL53L0X_Data* c, uint8_t * count, bool * type_is_aperture) {
+static esp_err_t getSpadInfo(struct VL53L0X_Data* c, uint8_t * count, bool * type_is_aperture) {
     uint8_t tmp;
 
-    writeReg(c, 0x80, 0x01);
+    esp_err_t ok = writeReg(c, 0x80, 0x01);
+    if (ok != ESP_OK) return ok;
+
     writeReg(c, 0xFF, 0x01);
     writeReg(c, 0x00, 0x00);
 
@@ -150,8 +152,7 @@ bool getSpadInfo(struct VL53L0X_Data* c, uint8_t * count, bool * type_is_apertur
     while (tmp == 0) {
         readRegMulti(c, 0x83, &tmp, 1);
         if ((xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS > 100) {
-            ESP_LOGI(TAG, "getSpadInfo failed");
-            return false;
+            return ESP_FAIL;
         }
     }
 
@@ -171,7 +172,7 @@ bool getSpadInfo(struct VL53L0X_Data* c, uint8_t * count, bool * type_is_apertur
     writeReg(c, 0xFF, 0x00);
     writeReg(c, 0x80, 0x00);
 
-    return true;
+    return ESP_OK;
 }
 
 void getSequenceStepEnables(struct VL53L0X_Data* c, struct SequenceStepEnables * enables) {
@@ -336,7 +337,7 @@ static bool setMeasurementTimingBudget(struct VL53L0X_Data* c) {
     return true;
 }
 
-bool performSingleRefCalibration(struct VL53L0X_Data* c, uint8_t vhv_init_byte) {
+static esp_err_t performSingleRefCalibration(struct VL53L0X_Data* c, uint8_t vhv_init_byte) {
     uint8_t data;
     writeReg(c, SYSRANGE_START, 0x01 | vhv_init_byte); // VL53L0X_REG_SYSRANGE_MODE_START_STOP
     
@@ -347,17 +348,17 @@ bool performSingleRefCalibration(struct VL53L0X_Data* c, uint8_t vhv_init_byte) 
         data = data & 0x07;
         if ((xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS > 100) {
             ESP_LOGI(TAG, "int timed out in performSingleRefCalibration");
-            return false;
+            return ESP_FAIL;
         }
     }
 
     writeReg(c, SYSTEM_INTERRUPT_CLEAR, 0x01);
     writeReg(c, SYSRANGE_START, 0x00);
 
-    return true;
+    return ESP_OK;
 }
 
-void setAddress(struct VL53L0X_Data* c, uint8_t new_addr) {
+esp_err_t setAddress(struct VL53L0X_Data* c, uint8_t new_addr) {
     new_addr &= 0x7F;
 
     esp_err_t ok = writeReg(c, I2C_SLAVE_DEVICE_ADDRESS, new_addr);
@@ -367,9 +368,11 @@ void setAddress(struct VL53L0X_Data* c, uint8_t new_addr) {
     } else {
         ESP_LOGI(TAG, "Failed to change address: %.2x", ok);
     }
+
+    return ok;
 }
 
-bool vl53l0x_init(struct VL53L0X_Data* c) {
+esp_err_t vl53l0x_init(struct VL53L0X_Data* c) {
     uint8_t data;
 
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -379,9 +382,9 @@ bool vl53l0x_init(struct VL53L0X_Data* c) {
 
     esp_err_t ok = i2c_master_cmd_begin(c->port, cmd, 10/portTICK_PERIOD_MS);
     i2c_cmd_link_delete(cmd);
-    if (ok != 0) {
+    if (ok != ESP_OK) {
         ESP_LOGI(TAG, "Failed to contact 0x%.2x: %.4x", c->address, ok);
-        return false;
+        return ok;
     }
  
     // VL53L0X_DataInit() begin
@@ -414,9 +417,9 @@ bool vl53l0x_init(struct VL53L0X_Data* c) {
 
     // VL53L0X_StaticInit() begin
 
-    uint8_t spad_count;
-    bool spad_type_is_aperture;
-    if (!getSpadInfo(c, &spad_count, &spad_type_is_aperture)) { return false; }
+    uint8_t spad_count = 0;
+    bool spad_type_is_aperture = false;
+    if (getSpadInfo(c, &spad_count, &spad_type_is_aperture) != ESP_OK) { return ESP_FAIL; }
 
     // The SPAD map (RefGoodSpadMap) is read by VL53L0X_get_info_from_device() in
     // the API, but the same data seems to be more easily readable from
@@ -446,7 +449,6 @@ bool vl53l0x_init(struct VL53L0X_Data* c) {
         }
     }
 
-    ESP_LOGI(TAG, "spad: %.2x %.2x %.2x %.2x %.2x %.2x", ref_spad_map[0], ref_spad_map[1], ref_spad_map[2], ref_spad_map[3], ref_spad_map[4], ref_spad_map[5]);
     writeRegMulti(c, GLOBAL_CONFIG_SPAD_ENABLES_REF_0, ref_spad_map, 6);
 
     // -- VL53L0X_set_reference_spads() end
@@ -581,14 +583,14 @@ bool vl53l0x_init(struct VL53L0X_Data* c) {
     // -- VL53L0X_perform_vhv_calibration() begin
 
     writeReg(c, SYSTEM_SEQUENCE_CONFIG, 0x01);
-    if (!performSingleRefCalibration(c, 0x40)) { return false; }
+    if (performSingleRefCalibration(c, 0x40) != ESP_OK) { return ESP_FAIL; }
 
     // -- VL53L0X_perform_vhv_calibration() end
 
     // -- VL53L0X_perform_phase_calibration() begin
 
     writeReg(c, SYSTEM_SEQUENCE_CONFIG, 0x02);
-    if (!performSingleRefCalibration(c, 0x00)) { return false; }
+    if (performSingleRefCalibration(c, 0x00) != ESP_OK) { return ESP_FAIL; }
 
     // -- VL53L0X_perform_phase_calibration() end
 
@@ -597,11 +599,13 @@ bool vl53l0x_init(struct VL53L0X_Data* c) {
 
     // VL53L0X_PerformRefCalibration() end
 
-    return true;
+    return ESP_OK;
 }
 
-void startContinuous(struct VL53L0X_Data* c) {
-    writeReg(c, 0x80, 0x01);
+esp_err_t startContinuous(struct VL53L0X_Data* c) {
+    esp_err_t ok = writeReg(c, 0x80, 0x01);
+    if (ok != ESP_OK) return ok;
+
     writeReg(c, 0xFF, 0x01);
     writeReg(c, 0x00, 0x00);
     writeReg(c, 0x91, c->stop_variable);
@@ -611,26 +615,29 @@ void startContinuous(struct VL53L0X_Data* c) {
 
     // continuous back-to-back mode
     writeReg(c, SYSRANGE_START, 0x02); // VL53L0X_REG_SYSRANGE_MODE_BACKTOBACK
+
+    return ESP_OK;
 }
 
-uint16_t readRangeContinuousMillimeters(struct VL53L0X_Data* c) {
-    uint8_t data = 0;
+esp_err_t readRangeContinuousMillimeters(struct VL53L0X_Data* c, uint16_t* range) {
+    uint8_t tmp = 0;
     
     TickType_t start_tick = xTaskGetTickCount();
-    while (data == 0) {
-        readRegMulti(c, RESULT_INTERRUPT_STATUS, &data, 1);
-        data = data & 0x07;
+    while (tmp == 0) {
+        esp_err_t ok = readRegMulti(c, RESULT_INTERRUPT_STATUS, &tmp, 1);
+        if (ok != ESP_OK) return ok;
+
+        tmp &= 0x07;
         if ((xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS > 100) {
-            return 65535;
+            return ESP_FAIL;
         }
     }
 
     // assumptions: Linearity Corrective Gain is 1000 (default);
     // fractional ranging is not enabled
-    uint16_t range = 0;
-    readReg16bit(c, RESULT_RANGE_STATUS + 10, &range);
+    readReg16bit(c, RESULT_RANGE_STATUS + 10, range);
 
     writeReg(c, SYSTEM_INTERRUPT_CLEAR, 0x01);
 
-    return range;
+    return ESP_OK;
 }
