@@ -365,8 +365,6 @@ esp_err_t setAddress(struct VL53L0X_Data* c, uint8_t new_addr) {
     if (ok == 0) {
         ESP_LOGI(TAG, "Changed address of 0x%.2x to 0x%.2x", c->address, new_addr);
         c->address = new_addr;
-    } else {
-        ESP_LOGI(TAG, "Failed to change address: %.2x", ok);
     }
 
     return ok;

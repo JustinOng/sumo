@@ -32,33 +32,38 @@ void read_vl53l0x_task(void *pvParamter) {
 
     vTaskDelay(10/portTICK_PERIOD_MS);
 
-    bool ok = vl53l0x_init(&c[0]);
-    if (!ok) {
-        ESP_LOGI(TAG, "Failed to initialise!");
-        vTaskDelete(NULL);
-    }
-
-    setAddress(&c[0], 0x10);
+    uint8_t sensor_count = 0;
 
     TickType_t start_ticks = xTaskGetTickCount();
     while(1) {
-        if (vl53l0x_init(&c[1])) {
-            setAddress(&c[0], 0x11);
-            ESP_LOGI(TAG, "Initialised second sensor");
-            break;
+        if (setAddress(&c[sensor_count], 0x10+sensor_count) == ESP_OK) {
+            ESP_LOGI(TAG, "Found sensor, readdressed to %.2x", 0x10+sensor_count);
+            sensor_count++;
         }
-        if ((xTaskGetTickCount() - start_ticks) * portTICK_PERIOD_MS > 100) {
+        
+        if ((xTaskGetTickCount() - start_ticks) * portTICK_PERIOD_MS > 1000) {
             ESP_LOGI(TAG, "Timed out");
             break;
         }
     }
 
-    vTaskDelete(NULL);
+    for (uint8_t i = 0; i < sensor_count; i++) {
+        if (vl53l0x_init(&c[i]) != ESP_OK) {
+            ESP_LOGI(TAG, "Failed to initialise %.2x", c[i].address);
+            continue;
+        }
 
-    startContinuous(&c[0]);
+        startContinuous(&c[i]);
+    }
 
+    uint16_t r0 = 0, r1 = 0;
     while(1) {
-        ESP_LOGI(TAG, "%d", readRangeContinuousMillimeters(&c[0]));
+        if (
+            readRangeContinuousMillimeters(&c[0], &r0) == ESP_OK &&
+            readRangeContinuousMillimeters(&c[1], &r1) == ESP_OK
+        ) {
+            ESP_LOGI(TAG, "%d %d", r0, r1);
+        }
         vTaskDelay(50/portTICK_PERIOD_MS);
     }
 }
