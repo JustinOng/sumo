@@ -49,17 +49,30 @@ void write_motor_task(void *pvParameter) {
 }
 
 void dump_task(void *pvParamter) {
+    int16_t current_speed = 0;
+    uint16_t target_speed = 0;
     while(1) {
-        ESP_LOGI(TAG, "%d", SpeedInputs[0]);
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+        pcnt_get_counter_value(PCNT_UNIT_0, &current_speed);
+        pcnt_counter_clear(PCNT_UNIT_0);
+
+        target_speed = (scaleReceiver(ReceiverChannels[0]) & 0x3FF) / 128;
+
+        MotorControl[0] = 600 + ((target_speed - current_speed) * 50);
+
+        if (MotorControl[0] > 0x3FF) MotorControl[0] = 0x3FF;
+
+        MotorControl[0] |= scaleReceiver(ReceiverChannels[0]) & 0x8000;
+
+        ESP_LOGI(TAG, "cur: %d target: %d power: %d", current_speed, target_speed, MotorControl[0] & 0x3FF);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
 void app_main()
 {
     ESP_LOGI(TAG, "Started");
-    xTaskCreate(&dump_task, "dump_task", 2048, NULL, 1, NULL);
-    xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
+    xTaskCreate(&dump_task, "dump_task", 2048, NULL, 100, NULL);
+    //xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
     xTaskCreate(&ledc_pwm_task, "ledc_pwm_task", 2048, NULL, 5, NULL);
     xTaskCreate(&rmt_listen_rx_task, "rmt_listen_rx_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);

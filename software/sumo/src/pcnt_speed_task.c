@@ -22,6 +22,8 @@ void pcnt_speed_task(void *pvParameter) {
         pcnt_counter_clear(pcnt_config[i].unit);
     }
 
+    vTaskDelete(NULL);
+
     while(1) {
         for (uint8_t i = 0; i < SPEED_CHANNELS_NUM; i++) {
             pcnt_get_counter_value(pcnt_config[i].unit, &SpeedInputs[i]);
