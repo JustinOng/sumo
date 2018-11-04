@@ -5,6 +5,7 @@
 #include "freertos/task.h"
 #include "driver/rmt.h"
 #include "esp_log.h"
+#include "config.h"
 
 #define RMT_TICK_PER_US 8
 // determines how many clock cycles one "tick" is

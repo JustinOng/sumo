@@ -31,6 +31,8 @@ void rmt_init_rx(void) {
     rmt_config_t rmt_channels[RECEIVER_CHANNELS_NUM] = {};
 
     for (i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
+        ReceiverChannels[i] = RECEIVER_CH_CENTER;
+
         rmt_channels[i].channel = RECEIVER_CHANNELS[i];
         rmt_channels[i].gpio_num = RECEIVER_GPIOS[i];
         rmt_channels[i].clk_div = RMT_RX_CLK_DIV;
