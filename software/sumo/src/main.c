@@ -68,13 +68,21 @@ void dump_task(void *pvParamter) {
     }
 }
 
+void logging_task(void *pvParameter) {
+    while(1) {
+        ESP_LOGI(TAG, "%d %d %d", scaleReceiver(ReceiverChannels[0]), scaleReceiver(ReceiverChannels[1]), scaleReceiver(ReceiverChannels[2]));
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
 void app_main()
 {
     ESP_LOGI(TAG, "Started");
-    xTaskCreate(&dump_task, "dump_task", 2048, NULL, 100, NULL);
-    //xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
+    //xTaskCreate(&dump_task, "dump_task", 2048, NULL, 100, NULL);
+    xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
+    xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
     xTaskCreate(&ledc_pwm_task, "ledc_pwm_task", 2048, NULL, 5, NULL);
     xTaskCreate(&rmt_listen_rx_task, "rmt_listen_rx_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
+    // xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
     xTaskCreate(&pcnt_speed_task, "pcnt_speed_task", 2048, NULL, 5, NULL);
 }
