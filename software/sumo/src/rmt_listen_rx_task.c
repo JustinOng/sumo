@@ -4,7 +4,7 @@ static const char* TAG = "RMT";
 
 uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM] = {0};
 const uint8_t RECEIVER_CHANNELS[RECEIVER_CHANNELS_NUM] = { 0, 1, 2 };
-const uint8_t RECEIVER_GPIOS[RECEIVER_CHANNELS_NUM] = { 12, 13, 14 };
+const uint8_t RECEIVER_GPIOS[RECEIVER_CHANNELS_NUM] = { 18, 17, 5 };
 
 void rmt_listen_rx_task(void *pvParameter) {
     // this task listens to the 3 channels of the receiver and outputs to the global struct receiver
