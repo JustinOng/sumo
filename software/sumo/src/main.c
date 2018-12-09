@@ -54,36 +54,37 @@ uint16_t scaleReceiver(uint16_t input) {
 }
 
 void write_motor_task(void *pvParameter) {
-    static uint16_t cur_dir = 0;
-    uint32_t dir_last_changed = 0;
-    uint32_t millis;
+    uint32_t millis = 0;
+    // tracks when the motor was last powered
+    uint32_t last_powered = 0;
+    // tracks when the last throttle reset occured to limit how often it resets
+    uint32_t last_reset = 0;
     uint16_t dir = 0;
 
     while(1) {
         millis = esp_timer_get_time() / 1000;
         uint16_t speed = scaleReceiver(ReceiverChannels[1]);
-        if (speed > 0) {
-            dir = (uint16_t) 0x8000 & speed;
-        }
-
-        // if direction has changed, wait for the wheel to stop spinning before
-        // allowing the direction to change (and throttle to increase)
-        if (dir != cur_dir) {
-            if ((millis - last_pulse) > 200) {
-                dir_last_changed = millis;
-                cur_dir = dir;
-
-                MotorControl[0] = speed;
-            } else {
-                MotorControl[0] = 0;
+        
+        if ((0x3FF & speed) > 80) {
+            if (last_powered == 0) {
+                last_powered = millis;
             }
         } else {
-            if ((millis - dir_last_changed) < 50) {
-                MotorControl[0] = dir;
-            } else {
-                MotorControl[0] = speed;
+            last_powered = 0;
+        }
+
+        if ((millis - last_reset) > 1000) {
+            last_reset = millis;
+            if ((millis - last_pulse) > 10 && (last_powered > 0 && (millis - last_powered) > 10)) {
+                ESP_LOGI(TAG, "Resetting");
+                MotorControl[0] = speed & 0x8000;
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+                speed = scaleReceiver(ReceiverChannels[1]);
             }
         }
+
+        MotorControl[0] = speed;
+
         vTaskDelay(1);
     }
 }
