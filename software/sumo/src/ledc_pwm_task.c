@@ -29,6 +29,11 @@ void ledc_pwm_task(void *pvParameter) {
             ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
         }
         gpio_set_level(MOTOR_LEFT_DIR_NUM, 0x8000 & MotorControl[0]);
+        /*if ((0x3FF & MotorControl[0]) == 0) {
+            gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 1);
+        } else {
+            gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 0);
+        }*/
         vTaskDelay(1);
     }
 }
@@ -52,7 +57,7 @@ void ledc_init(void) {
     gpio_config_t io_conf;
     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << MOTOR_LEFT_DIR_NUM);
+    io_conf.pin_bit_mask = (1ULL << MOTOR_LEFT_DIR_NUM) | (1ULL << MOTOR_LEFT_BRAKE_NUM);
     io_conf.pull_down_en = 0;
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
