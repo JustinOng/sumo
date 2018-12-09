@@ -20,7 +20,12 @@ void ledc_pwm_task(void *pvParameter) {
 
     while(1) {
         for (i = 0; i < MOTOR_CHANNELS_NUM; i++) {
-            ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0x3FF & MotorControl[i]);
+            if ((0x3FF & MotorControl[i]) > 80) {
+                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0x3FF & MotorControl[i]);
+            } else {
+                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0);
+            }
+
             ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
         }
         gpio_set_level(MOTOR_LEFT_DIR_NUM, 0x8000 & MotorControl[0]);
