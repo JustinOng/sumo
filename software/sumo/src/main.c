@@ -9,7 +9,6 @@
 #include "rmt_listen_rx_task.h"
 #include "ledc_pwm_task.h"
 #include "read_vl53l0x_task.h"
-#include "pcnt_speed_task.h"
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
