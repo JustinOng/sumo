@@ -65,7 +65,7 @@ void write_motor_task(void *pvParameter) {
         millis = esp_timer_get_time() / 1000;
         uint16_t speed = scaleReceiver(ReceiverChannels[1]);
         
-        if ((0x3FF & speed) > 80) {
+        if ((0x3FF & speed) > 50) {
             if (last_powered == 0) {
                 last_powered = millis;
             }
@@ -75,10 +75,10 @@ void write_motor_task(void *pvParameter) {
 
         if ((millis - last_reset) > 1000) {
             last_reset = millis;
-            if ((millis - last_pulse) > 10 && (last_powered > 0 && (millis - last_powered) > 10)) {
+            if ((millis - last_pulse) > 5 && (last_powered > 0 && (millis - last_powered) > 10)) {
                 ESP_LOGI(TAG, "Resetting");
                 MotorControl[0] = speed & 0x8000;
-                vTaskDelay(100 / portTICK_PERIOD_MS);
+                vTaskDelay(50 / portTICK_PERIOD_MS);
                 speed = scaleReceiver(ReceiverChannels[1]);
             }
         }
