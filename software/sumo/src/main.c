@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <time.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
@@ -13,15 +12,6 @@
 #define ESP_INTR_FLAG_DEFAULT 0
 
 static const char* TAG = "main";
-
-static volatile uint32_t last_pulse = 0;
-
-static void IRAM_ATTR gpio_isr_handler(void* arg) {
-    uint32_t gpio_num = (uint32_t) arg;
-    int64_t cur_time = esp_timer_get_time();
-
-    last_pulse = cur_time / 1000;
-}
 
 uint16_t scaleReceiver(uint16_t input) {
     // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_DEADZONE and returns
@@ -58,7 +48,6 @@ void write_motor_task(void *pvParameter) {
     uint32_t last_powered = 0;
     // tracks when the last throttle reset occured to limit how often it resets
     uint32_t last_reset = 0;
-    uint16_t dir = 0;
 
     while(1) {
         millis = esp_timer_get_time() / 1000;
@@ -88,30 +77,6 @@ void write_motor_task(void *pvParameter) {
     }
 }
 
-void dump_task(void *pvParamter) {
-    int16_t current_speed = 0;
-    uint16_t target_speed = 0;
-
-    while(1) {
-        ESP_LOGI(TAG, "t: %d", last_pulse);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        
-        /*pcnt_get_counter_value(PCNT_UNIT_0, &current_speed);
-        pcnt_counter_clear(PCNT_UNIT_0);
-
-        target_speed = (scaleReceiver(ReceiverChannels[0]) & 0x3FF) / 128;
-
-        MotorControl[0] = 600 + ((target_speed - current_speed) * 50);
-
-        if (MotorControl[0] > 0x3FF) MotorControl[0] = 0x3FF;
-
-        MotorControl[0] |= scaleReceiver(ReceiverChannels[0]) & 0x8000;
-
-        ESP_LOGI(TAG, "cur: %d target: %d power: %d", current_speed, target_speed, MotorControl[0] & 0x3FF);
-        vTaskDelay(100 / portTICK_PERIOD_MS);*/
-    }
-}
-
 void logging_task(void *pvParameter) {
     while(1) {
         ESP_LOGI(TAG, "%d %d %d", scaleReceiver(ReceiverChannels[0]), scaleReceiver(ReceiverChannels[1]), scaleReceiver(ReceiverChannels[2]));
@@ -121,27 +86,11 @@ void logging_task(void *pvParameter) {
 
 void app_main()
 {
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_PIN_INTR_ANYEDGE;
-    io_conf.pin_bit_mask = (1ULL << 25);
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pull_up_en = 1;
-    io_conf.pull_down_en = 0;
-    gpio_config(&io_conf);
-
-    gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
-    esp_err_t ok = gpio_isr_handler_add(25, gpio_isr_handler, (void*) 25);
-
-    if (ok != ESP_OK) {
-        ESP_LOGI(TAG, "Failed to init isr: %d", ok);
-    }
-
     ESP_LOGI(TAG, "Started");
-    //xTaskCreate(&dump_task, "dump_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
     //xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
     xTaskCreate(&ledc_pwm_task, "ledc_pwm_task", 2048, NULL, 5, NULL);
     xTaskCreate(&rmt_listen_rx_task, "rmt_listen_rx_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 5, NULL);
     //xTaskCreate(&pcnt_speed_task, "pcnt_speed_task", 2048, NULL, 5, NULL);
 }
