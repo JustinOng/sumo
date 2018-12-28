@@ -2,9 +2,48 @@
 
 static const char* TAG = "RMT";
 
-uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM] = {0};
+volatile uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM] = {0};
 const uint8_t RECEIVER_CHANNELS[RECEIVER_CHANNELS_NUM] = { 0, 1, 2 };
 const uint8_t RECEIVER_GPIOS[RECEIVER_CHANNELS_NUM] = { 18, 17, 5 };
+
+static void IRAM_ATTR rmt_isr_handler(void* arg){
+    // with reference to https://www.esp32.com/viewtopic.php?t=7116#p32383
+    // but modified so that this ISR only checks chX_rx_end
+    uint32_t intr_st = RMT.int_st.val;
+
+    // see declaration of RMT.int_st:
+    // takes the form of 
+    // bit 0: ch0_tx_end
+    // bit 1: ch0_rx_end
+    // bit 2: ch0_err
+    // bit 3: ch1_tx_end
+    // bit 4: ch1_rx_end
+    // ...
+    // thus, check whether bit (channel*3 + 1) is set to identify
+    // whether that channel has changed
+
+    uint8_t i;
+    for(i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
+        uint8_t channel = RECEIVER_CHANNELS[i];
+        uint8_t channel_mask = BIT(channel*3+1);
+
+        if (!(intr_st & channel_mask)) continue;
+
+        RMT.conf_ch[channel].conf1.rx_en = 0;
+        RMT.conf_ch[channel].conf1.mem_owner = RMT_MEM_OWNER_TX;
+        volatile rmt_item32_t* item = RMTMEM.chan[channel].data32;
+        if (item) {
+            ReceiverChannels[channel] = item->duration0;
+        }
+
+        RMT.conf_ch[channel].conf1.mem_wr_rst = 1;
+        RMT.conf_ch[channel].conf1.mem_owner = RMT_MEM_OWNER_RX;
+        RMT.conf_ch[channel].conf1.rx_en = 1;
+
+        //clear RMT interrupt status.
+        RMT.int_clr.val = channel_mask;
+    }
+}
 
 static void rmt_init(void) {
     uint8_t i;
@@ -24,34 +63,16 @@ static void rmt_init(void) {
         rmt_channels[i].rx_config.idle_threshold = RMT_RX_MAX_US * RMT_TICK_PER_US;
 
         rmt_config(&rmt_channels[i]);
-        rmt_driver_install(rmt_channels[i].channel, RMT_RB_SIZE, 0);
+        rmt_set_rx_intr_en(rmt_channels[i].channel, true);
+        rmt_rx_start(rmt_channels[i].channel, 1);
     }
 
+    rmt_isr_register(rmt_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
     ESP_LOGI(TAG, "Init");
 }
 
 void listen_rx_task(void *pvParameter) {
     // this task listens to the 3 channels of the receiver and outputs to the global ReceiverChannels
-    uint8_t i;
-
     rmt_init();
-    RingbufHandle_t rb[RECEIVER_CHANNELS_NUM];
-    
-    for (i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
-        rmt_get_ringbuf_handle(RECEIVER_CHANNELS[i], &rb[i]);
-        rmt_rx_start(RECEIVER_CHANNELS[i], 1);
-    }
-
-    while(1) {
-        size_t rx_size = 0;
-
-        for (i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
-            rmt_item32_t* item = (rmt_item32_t*) xRingbufferReceive(rb[i], &rx_size, 1000);
-            if(item) {
-                ReceiverChannels[i] = (uint16_t) item->duration0;
-                vRingbufferReturnItem(rb[i], (void*) item);
-            }
-        }
-        vTaskDelay(1);
-    }
+    vTaskDelete(NULL);
 }
