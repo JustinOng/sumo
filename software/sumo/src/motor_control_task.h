@@ -25,8 +25,13 @@
 #define LEDC_FREQUENCY 1000
 #define LEDC_RESOLUTION LEDC_TIMER_10_BIT
 
+typedef struct {
+    uint8_t dir;
+    uint16_t speed;
+} MotorState;
+
 // only lower 10 bits is used because of 10 bit resolution of the ledc module
-extern uint16_t MotorControl[MOTOR_CHANNELS_NUM];
+extern MotorState Motors[MOTOR_CHANNELS_NUM];
 extern volatile uint32_t last_pulse;
 
 void motor_control_task(void *pvParameter);

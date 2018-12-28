@@ -1,7 +1,16 @@
 #include "motor_control_task.h"
 
 static const char* TAG = "LEDC";
-uint16_t MotorControl[MOTOR_CHANNELS_NUM] = {0};
+MotorState Motors[MOTOR_CHANNELS_NUM] = {
+    {
+        .dir   = 0,
+        .speed = 0
+    }, {
+        .dir   = 0,
+        .speed = 0
+    }
+};
+
 volatile uint32_t last_pulse = 0;
 
 static ledc_channel_config_t ledc_channel[MOTOR_CHANNELS_NUM] = {
@@ -47,8 +56,8 @@ static void motor_control_init(void) {
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.pin_bit_mask = (1ULL << MOTOR_LEFT_DIR_NUM) | (1ULL << MOTOR_LEFT_BRAKE_NUM);
-    io_conf.pull_down_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     gpio_config(&io_conf);
 }
 
@@ -62,15 +71,15 @@ void motor_control_task(void *pvParameter) {
         millis = (uint64_t) esp_timer_get_time() / 1000;
 
         for (i = 0; i < MOTOR_CHANNELS_NUM; i++) {
-            if ((0x3FF & MotorControl[i]) > 80) {
-                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0x3FF & MotorControl[i]);
+            if (Motors[i].speed > 80) {
+                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, Motors[i].speed);
             } else {
                 ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0);
             }
 
             ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
         }
-        gpio_set_level(MOTOR_LEFT_DIR_NUM, 0x8000 & MotorControl[0]);
+        gpio_set_level(MOTOR_LEFT_DIR_NUM, Motors[0].dir);
         /*if ((0x3FF & MotorControl[0]) == 0) {
             gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 1);
         } else {
@@ -86,7 +95,7 @@ void speed_isr_init() {
     io_conf.pin_bit_mask = (1ULL << MOTOR_LEFT_SPEED_NUM) | (1ULL << MOTOR_RIGHT_SPEED_NUM);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-    io_conf.pull_down_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     gpio_config(&io_conf);
 
     gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
