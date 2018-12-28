@@ -50,7 +50,7 @@ void write_motor_task(void *pvParameter) {
     uint32_t last_reset = 0;
 
     while(1) {
-        millis = esp_timer_get_time() / 1000;
+        millis = esp_timer_get_time() / (long long) 1000;
         uint16_t speed = scaleReceiver(ReceiverChannels[1]);
         
         if ((0x3FF & speed) > 50) {
