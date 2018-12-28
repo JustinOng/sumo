@@ -1,5 +1,5 @@
-#ifndef RMT_LISTEN_RX_TASK
-#define RMT_LISTEN_RX_TASK
+#ifndef LISTEN_RX_TASK
+#define LISTEN_RX_TASK
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -23,7 +23,6 @@ extern const uint8_t RECEIVER_GPIOS[RECEIVER_CHANNELS_NUM];
 
 extern uint16_t ReceiverChannels[RECEIVER_CHANNELS_NUM];
 
-void rmt_listen_rx_task(void *pvParameter);
-void rmt_init_rx(void);
+void listen_rx_task(void *pvParameter);
 
 #endif

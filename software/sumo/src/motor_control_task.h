@@ -1,5 +1,5 @@
-#ifndef LEDC_PWM_TASK
-#define LEDC_PWM_TASK
+#ifndef MOTOR_CONTROL_TASK
+#define MOTOR_CONTROL_TASK
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -29,7 +29,6 @@
 extern uint16_t MotorControl[MOTOR_CHANNELS_NUM];
 extern volatile uint32_t last_pulse;
 
-void ledc_pwm_task(void *pvParameter);
-void ledc_init(void);
+void motor_control_task(void *pvParameter);
 
 #endif

@@ -1,4 +1,4 @@
-#include "ledc_pwm_task.h"
+#include "motor_control_task.h"
 
 static const char* TAG = "LEDC";
 uint16_t MotorControl[MOTOR_CHANNELS_NUM] = {0};
@@ -27,35 +27,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
     last_pulse = (uint64_t) cur_time / 1000;
 }
 
-void ledc_pwm_task(void *pvParameter) {
-    uint8_t i;
-    uint32_t millis = 0;
-
-    ledc_init();
-
-    while(1) {
-        millis = (uint64_t) esp_timer_get_time() / 1000;
-
-        for (i = 0; i < MOTOR_CHANNELS_NUM; i++) {
-            if ((0x3FF & MotorControl[i]) > 80) {
-                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0x3FF & MotorControl[i]);
-            } else {
-                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0);
-            }
-
-            ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
-        }
-        gpio_set_level(MOTOR_LEFT_DIR_NUM, 0x8000 & MotorControl[0]);
-        /*if ((0x3FF & MotorControl[0]) == 0) {
-            gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 1);
-        } else {
-            gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 0);
-        }*/
-        vTaskDelay(1);
-    }
-}
-
-void ledc_init(void) {
+static void motor_control_init(void) {
     uint8_t i;
 
     ledc_timer_config_t ledc_timer = {
@@ -78,6 +50,34 @@ void ledc_init(void) {
     io_conf.pull_down_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     gpio_config(&io_conf);
+}
+
+void motor_control_task(void *pvParameter) {
+    uint8_t i;
+    uint32_t millis = 0;
+
+    motor_control_init();
+
+    while(1) {
+        millis = (uint64_t) esp_timer_get_time() / 1000;
+
+        for (i = 0; i < MOTOR_CHANNELS_NUM; i++) {
+            if ((0x3FF & MotorControl[i]) > 80) {
+                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0x3FF & MotorControl[i]);
+            } else {
+                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0);
+            }
+
+            ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
+        }
+        gpio_set_level(MOTOR_LEFT_DIR_NUM, 0x8000 & MotorControl[0]);
+        /*if ((0x3FF & MotorControl[0]) == 0) {
+            gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 1);
+        } else {
+            gpio_set_level(MOTOR_LEFT_BRAKE_NUM, 0);
+        }*/
+        vTaskDelay(1);
+    }
 }
 
 void speed_isr_init() {

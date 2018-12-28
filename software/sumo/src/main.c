@@ -5,8 +5,8 @@
 #include "esp_log.h"
 
 #include "config.h"
-#include "rmt_listen_rx_task.h"
-#include "ledc_pwm_task.h"
+#include "listen_rx_task.h"
+#include "motor_control_task.h"
 #include "read_vl53l0x_task.h"
 
 #define ESP_INTR_FLAG_DEFAULT 0
@@ -88,9 +88,8 @@ void app_main()
 {
     ESP_LOGI(TAG, "Started");
     //xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&ledc_pwm_task, "ledc_pwm_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&rmt_listen_rx_task, "rmt_listen_rx_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&listen_rx_task, "listen_rx_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 5, NULL);
-    //xTaskCreate(&pcnt_speed_task, "pcnt_speed_task", 2048, NULL, 5, NULL);
 }
