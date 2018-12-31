@@ -5,7 +5,7 @@
 #include "esp_log.h"
 
 #include "config.h"
-#include "listen_rx_task.h"
+#include "configure_rmt.h"
 #include "motor_control_task.h"
 #include "read_vl53l0x_task.h"
 
@@ -95,9 +95,9 @@ void logging_task(void *pvParameter) {
 void app_main()
 {
     ESP_LOGI(TAG, "Started");
+    rmt_init();
     //xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
     xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&listen_rx_task, "listen_rx_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 5, NULL);
 }

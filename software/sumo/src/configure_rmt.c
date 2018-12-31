@@ -1,4 +1,8 @@
-#include "listen_rx_task.h"
+#include "configure_rmt.h"
+
+// this file configure the RMT for 2 purposes:
+// - Reading the pulse widths of the servo signal from the RC receiver
+// - Reading the pulse widths of the hall effect sensors in the motor
 
 static const char* TAG = "RMT";
 
@@ -25,7 +29,7 @@ static void IRAM_ATTR rmt_isr_handler(void* arg){
     uint8_t i;
     for(i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
         uint8_t channel = RECEIVER_CHANNELS[i];
-        uint8_t channel_mask = BIT(channel*3+1);
+        uint32_t channel_mask = BIT(channel*3+1);
 
         if (!(intr_st & channel_mask)) continue;
 
@@ -45,7 +49,7 @@ static void IRAM_ATTR rmt_isr_handler(void* arg){
     }
 }
 
-static void rmt_init(void) {
+void rmt_init(void) {
     uint8_t i;
 
     rmt_config_t rmt_channels[RECEIVER_CHANNELS_NUM] = {};
@@ -53,8 +57,8 @@ static void rmt_init(void) {
     for (i = 0; i < RECEIVER_CHANNELS_NUM; i++) {
         ReceiverChannels[i] = RECEIVER_CH_CENTER;
 
-        rmt_channels[i].channel = RECEIVER_CHANNELS[i];
-        rmt_channels[i].gpio_num = RECEIVER_GPIOS[i];
+        rmt_channels[i].channel = (rmt_channel_t) RECEIVER_CHANNELS[i];
+        rmt_channels[i].gpio_num = (gpio_num_t) RECEIVER_GPIOS[i];
         rmt_channels[i].clk_div = RMT_RX_CLK_DIV;
         rmt_channels[i].mem_block_num = 1;
         rmt_channels[i].rmt_mode = RMT_MODE_RX;
@@ -69,10 +73,4 @@ static void rmt_init(void) {
 
     rmt_isr_register(rmt_isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);
     ESP_LOGI(TAG, "Init");
-}
-
-void listen_rx_task(void *pvParameter) {
-    // this task listens to the 3 channels of the receiver and outputs to the global ReceiverChannels
-    rmt_init();
-    vTaskDelete(NULL);
 }
