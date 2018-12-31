@@ -6,6 +6,9 @@
 #include "driver/ledc.h"
 #include "driver/gpio.h"
 
+#define MIN_MOTOR_SPEED 150
+#define MAX_MOTOR_SPEED 40
+
 #define MOTOR_CHANNELS_NUM 2
 
 #define MOTOR_LEFT_CHANNEL LEDC_CHANNEL_0
@@ -34,5 +37,7 @@ extern volatile uint64_t last_pulse;
 extern volatile uint64_t last_pulse_length;
 
 void motor_control_task(void *pvParameter);
+void set_motor_dir(uint8_t motor, uint8_t dir);
+void set_motor_speed(uint8_t motor, uint16_t speed);
 
 #endif
