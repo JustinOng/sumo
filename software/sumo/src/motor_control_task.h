@@ -30,9 +30,8 @@ typedef struct {
     uint16_t speed;
 } MotorState;
 
-// only lower 10 bits is used because of 10 bit resolution of the ledc module
-extern MotorState Motors[MOTOR_CHANNELS_NUM];
-extern volatile uint32_t last_pulse;
+extern volatile uint64_t last_pulse;
+extern volatile uint64_t last_pulse_length;
 
 void motor_control_task(void *pvParameter);
 
