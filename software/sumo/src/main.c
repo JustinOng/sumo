@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
@@ -11,17 +12,12 @@
 
 static const char* TAG = "main";
 
-MotorState scaleReceiver(uint16_t input) {
+int16_t scaleReceiver(uint16_t input) {
     // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_DEADZONE
     // and returns direction and speed
     // map function taken from https://www.arduino.cc/reference/en/language/functions/math/map/
-    const uint16_t out_min = 50;
-    const uint16_t out_max = 150;
-
-    MotorState motor_state = {
-        .dir   = 0,
-        .speed = 0
-    };
+    const int16_t out_min = -200;
+    const int16_t out_max = 200;
 
     // if input out of range force it to be within
     if (input < RECEIVER_CH_MIN) {
@@ -32,20 +28,10 @@ MotorState scaleReceiver(uint16_t input) {
     
     // if input within deadzone, return 0
     if (input > (RECEIVER_CH_CENTER-RECEIVER_CH_DEADZONE) && input < (RECEIVER_CH_CENTER+RECEIVER_CH_DEADZONE)) {
-        return motor_state;
+        return 0;
     }
 
-    // scale a value from [RECEIVER_CH_MIN, RECEIVER_CH_CENTER] to [out_min, out_max]
-    if (input < RECEIVER_CH_CENTER) {
-        motor_state.dir = 1;
-        motor_state.speed = (RECEIVER_CH_CENTER - input) * (out_max - out_min) / (RECEIVER_CH_CENTER - RECEIVER_CH_MIN) + out_min;
-    } else
-    // scale a value from [RECEIVER_CH_CENTER, RECEIVER_CH_MAX] to [out_min, out_max]
-    {
-        motor_state.speed = (input - RECEIVER_CH_CENTER) * (out_max - out_min) / (RECEIVER_CH_MAX - RECEIVER_CH_CENTER) + out_min;
-    }
-
-    return motor_state;
+    return (input - RECEIVER_CH_MIN) * (out_max - out_min) / (RECEIVER_CH_MAX - RECEIVER_CH_MIN) + out_min;
 }
 
 void write_motor_task(void *pvParameter) {
@@ -55,8 +41,10 @@ void write_motor_task(void *pvParameter) {
     // tracks when the last throttle reset occured to limit how often it resets
     uint32_t last_reset = 0;
 
+    uint16_t cur_speed = 0;
+
     while(1) {
-        millis = esp_timer_get_time() / (long long) 1000;
+        /*millis = esp_timer_get_time() / (long long) 1000;
         MotorState motor_state = scaleReceiver(ReceiverChannels[1]);
         
         if (motor_state.speed > 50) {
@@ -76,10 +64,19 @@ void write_motor_task(void *pvParameter) {
                 vTaskDelay(50 / portTICK_PERIOD_MS);
                 motor_state = scaleReceiver(ReceiverChannels[1]);
             }
-        }
+        }*/
 
-        Motors[0].dir = motor_state.dir;
-        Motors[0].speed = motor_state.speed;
+        int16_t forward = scaleReceiver(ReceiverChannels[1]);
+        int16_t turn = scaleReceiver(ReceiverChannels[0]);
+
+        int16_t left_state = forward + turn;
+        int16_t right_state = forward - turn;
+
+        Motors[0].dir = left_state < 0 ? 1 : 0;
+        Motors[0].speed = min(SPEED_MAX, abs(left_state));
+
+        Motors[1].dir = right_state < 0 ? 1 : 0;
+        Motors[1].speed = min(SPEED_MAX, abs(right_state));
 
         vTaskDelay(1);
     }
@@ -87,7 +84,7 @@ void write_motor_task(void *pvParameter) {
 
 void logging_task(void *pvParameter) {
     while(1) {
-        // ESP_LOGI(TAG, "%d %d %d", scaleReceiver(ReceiverChannels[0]), scaleReceiver(ReceiverChannels[1]), scaleReceiver(ReceiverChannels[2]));
+        ESP_LOGI(TAG, "%llu", last_pulse_length);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
