@@ -7,7 +7,7 @@
 #include "driver/gpio.h"
 
 #define MIN_MOTOR_SPEED 150
-#define MAX_MOTOR_SPEED 40
+#define MAX_MOTOR_SPEED 190
 
 #define MOTOR_CHANNELS_NUM 2
 
