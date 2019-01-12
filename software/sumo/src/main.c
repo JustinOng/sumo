@@ -13,7 +13,7 @@
 static const char* TAG = "main";
 
 int16_t scaleReceiver(uint16_t input) {
-    // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_DEADZONE
+    // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_CENTER
     // and returns direction and speed
     // map function taken from https://www.arduino.cc/reference/en/language/functions/math/map/
     const int16_t out_min = -MAX_MOTOR_SPEED;
@@ -72,7 +72,7 @@ void write_motor_task(void *pvParameter) {
         int16_t left_state = forward + turn;
         int16_t right_state = forward - turn;
 
-        ESP_LOGI(TAG, "l: %d, r: %d", left_state, right_state);
+        //ESP_LOGI(TAG, "l: %d, r: %d", left_state, right_state);
 
         set_motor_dir(0, left_state < 0 ? 1 : 0);
         set_motor_speed(0, abs(left_state));

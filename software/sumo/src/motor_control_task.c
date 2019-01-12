@@ -120,7 +120,9 @@ void set_motor_dir(uint8_t motor, uint8_t dir) {
 void set_motor_speed(uint8_t motor, uint16_t speed) {
     if (motor >= MOTOR_CHANNELS_NUM) return;
 
-    speed += MIN_MOTOR_SPEED;
+    if (speed > 0) {
+        speed += MIN_MOTOR_SPEED;
+    }
 
     if (speed > MAX_MOTOR_SPEED) speed = MAX_MOTOR_SPEED;
 
