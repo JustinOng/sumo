@@ -9,6 +9,7 @@
 #include "configure_rmt.h"
 #include "motor_control_task.h"
 #include "read_vl53l0x_task.h"
+#include "read_light_sensor_task.h"
 
 static const char* TAG = "main";
 
@@ -98,5 +99,6 @@ void app_main()
     //xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
     xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
+    //xTaskCreate(&read_light_sensor_task, "read_light_sensor_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 5, NULL);
 }
