@@ -36,37 +36,7 @@ int16_t scaleReceiver(uint16_t input) {
 }
 
 void write_motor_task(void *pvParameter) {
-    uint32_t millis = 0;
-    // tracks when the motor was last powered
-    uint32_t last_powered = 0;
-    // tracks when the last throttle reset occured to limit how often it resets
-    uint32_t last_reset = 0;
-
-    uint16_t cur_speed = 0;
-
     while(1) {
-        /*millis = esp_timer_get_time() / (long long) 1000;
-        MotorState motor_state = scaleReceiver(ReceiverChannels[1]);
-        
-        if (motor_state.speed > 50) {
-            if (last_powered == 0) {
-                last_powered = millis;
-            }
-        } else {
-            last_powered = 0;
-        }
-
-        if ((millis - last_reset) > 1000) {
-            last_reset = millis;
-            if ((millis - last_pulse) > 5 && (last_powered > 0 && (millis - last_powered) > 10)) {
-                ESP_LOGI(TAG, "Resetting");
-                Motors[0].dir = motor_state.dir;
-                Motors[0].speed = 0;
-                vTaskDelay(50 / portTICK_PERIOD_MS);
-                motor_state = scaleReceiver(ReceiverChannels[1]);
-            }
-        }*/
-
         int16_t forward = scaleReceiver(ReceiverChannels[1]) * SCALE_FORWARD;
         int16_t turn = scaleReceiver(ReceiverChannels[0]) * SCALE_TURN;
 

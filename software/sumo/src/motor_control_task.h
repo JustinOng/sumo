@@ -5,9 +5,13 @@
 #include "freertos/task.h"
 #include "driver/ledc.h"
 #include "driver/gpio.h"
+#include "esp_log.h"
 
 #define MIN_MOTOR_SPEED 150
 #define MAX_MOTOR_SPEED 190
+
+// time(us) to set speed to zero when the direction changes
+#define DIR_CHANGE_DEAD_TIME 100000
 
 #define MOTOR_CHANNELS_NUM 2
 
