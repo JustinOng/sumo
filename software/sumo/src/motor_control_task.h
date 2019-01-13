@@ -25,6 +25,9 @@
 
 #define LEDC_SPEED_MODE LEDC_LOW_SPEED_MODE
 #define LEDC_TIMER LEDC_TIMER_0
+// This frequency isnt actually set because LEDC_RESOLUTION is too high
+// but my throttle works now and I cant spend the time to debug why
+// it misbehavese when I set LEDC_FREQUENCY to 64k
 #define LEDC_FREQUENCY 100000
 #define LEDC_RESOLUTION LEDC_TIMER_10_BIT
 
