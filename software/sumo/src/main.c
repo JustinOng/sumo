@@ -67,8 +67,8 @@ void write_motor_task(void *pvParameter) {
             }
         }*/
 
-        int16_t forward = scaleReceiver(ReceiverChannels[1]);
-        int16_t turn = scaleReceiver(ReceiverChannels[0]);
+        int16_t forward = scaleReceiver(ReceiverChannels[1]) * SCALE_FORWARD;
+        int16_t turn = scaleReceiver(ReceiverChannels[0]) * SCALE_TURN;
 
         int16_t left_state = forward + turn;
         int16_t right_state = forward - turn;
