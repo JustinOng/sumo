@@ -116,7 +116,11 @@ void set_motor_dir(uint8_t motor, uint8_t dir) {
     if (motor >= MOTOR_CHANNELS_NUM) return;
 
     if (Motors[motor].dir != dir) {
-        Motors[motor].last_dir_change = esp_timer_get_time();
+        if ((esp_timer_get_time() - Motors[motor].last_dir_change) < DIR_CHANGE_DEAD_TIME) {
+            Motors[motor].last_dir_change = 0;
+        } else {
+            Motors[motor].last_dir_change = esp_timer_get_time();
+        }
     }
 
     Motors[motor].dir = dir;
