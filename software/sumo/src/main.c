@@ -53,22 +53,26 @@ void write_motor_task(void *pvParameter) {
         // if line sensors see the boundary and we're trying to move in that direction,
         // zero out the speed
         if (
-            (Line_Seen[FRONT_LEFT] && left_state > 0) ||
-            (Line_Seen[REAR_LEFT] && left_state < 0)
+            (Line_Seen[FRONT_LEFT] && left_state < 0) ||
+            (Line_Seen[REAR_LEFT] && left_state > 0)
         ) {
             set_motor_speed(0, 0);
+            set_motor_brake(0, 1);
         } else {
             set_motor_speed(0, abs(left_state));
+            set_motor_brake(0, 0);
         }
 
         set_motor_dir(1, right_state < 0 ? 1 : 0);
         if (
-            (Line_Seen[FRONT_RIGHT] && right_state > 0) ||
-            (Line_Seen[REAR_RIGHT] && right_state < 0)
+            (Line_Seen[FRONT_RIGHT] && right_state < 0) ||
+            (Line_Seen[REAR_RIGHT] && right_state > 0)
         ) {
             set_motor_speed(1, 0);
+            set_motor_brake(1, 1);
         } else {
             set_motor_speed(1, abs(right_state));
+            set_motor_brake(1, 0);
         }
 
         vTaskDelay(1);
@@ -77,7 +81,12 @@ void write_motor_task(void *pvParameter) {
 
 void logging_task(void *pvParameter) {
     while(1) {
-        ESP_LOGI(TAG, "%d %d %d %d", IR_sensors[0], IR_sensors[1], IR_sensors[2], IR_sensors[3]);
+        ESP_LOGI(TAG, "%d(%d) %d(%d) %d(%d) %d(%d)",
+            IR_sensors_values[0], Line_Seen[0],
+            IR_sensors_values[1], Line_Seen[1],
+            IR_sensors_values[2], Line_Seen[2],
+            IR_sensors_values[3], Line_Seen[3]
+        );
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }

@@ -137,3 +137,14 @@ void set_motor_speed(uint8_t motor, uint16_t speed) {
 
     Motors[motor].speed = speed;
 }
+
+
+void set_motor_brake(uint8_t motor, uint8_t brake) {
+    if (motor >= MOTOR_CHANNELS_NUM) return;
+
+    if (motor == 0) {
+        gpio_set_level(MOTOR_LEFT_BRAKE_NUM, brake);
+    } else if (motor == 1) {
+        gpio_set_level(MOTOR_RIGHT_BRAKE_NUM, brake);
+    }
+}

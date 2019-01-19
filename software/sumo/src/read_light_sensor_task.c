@@ -2,7 +2,7 @@
 
 static const char* TAG = "LSENSOR";
 
-uint8_t IR_sensors[IR_CHANNELS_NUM] = { 0 };
+uint8_t Line_Seen[IR_CHANNELS_NUM] = { 0 };
 uint16_t IR_sensors_values[IR_CHANNELS_NUM] = { 0 };
 uint16_t IR_sensors_base_values[IR_CHANNELS_NUM] = { 0 };
 

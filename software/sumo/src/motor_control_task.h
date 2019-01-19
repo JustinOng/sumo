@@ -46,5 +46,6 @@ extern volatile uint64_t last_pulse_length;
 void motor_control_task(void *pvParameter);
 void set_motor_dir(uint8_t motor, uint8_t dir);
 void set_motor_speed(uint8_t motor, uint16_t speed);
+void set_motor_brake(uint8_t motor, uint8_t brake);
 
 #endif
