@@ -4,6 +4,7 @@
 #include "freertos/task.h"
 #include "sdkconfig.h"
 #include "esp_log.h"
+#include "math.h"
 
 #include "config.h"
 #include "configure_rmt.h"
@@ -37,8 +38,11 @@ int16_t scaleReceiver(uint16_t input) {
 
 void write_motor_task(void *pvParameter) {
     while(1) {
-        int16_t forward = scaleReceiver(ReceiverChannels[1]) * SCALE_FORWARD;
+        int16_t forward = scaleReceiver(ReceiverChannels[1]);
         int16_t turn = scaleReceiver(ReceiverChannels[0]) * SCALE_TURN;
+
+        // solve for k in y=0.1*2^(kx)-0.1 where y=40, x=200
+        forward = (forward < 0 ? -1 : 1) * (pow(2, 0.0432 * abs(forward)) - 1) * SCALE_FORWARD;
 
         int16_t left_state = forward + turn;
         int16_t right_state = forward - turn;

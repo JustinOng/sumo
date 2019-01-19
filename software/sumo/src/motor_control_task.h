@@ -7,8 +7,8 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
-#define MIN_MOTOR_SPEED 150
-#define MAX_MOTOR_SPEED 190
+#define MIN_MOTOR_SPEED 160
+#define MAX_MOTOR_SPEED 200
 
 // time(us) to set speed to zero when the direction changes
 #define DIR_CHANGE_DEAD_TIME 100000
