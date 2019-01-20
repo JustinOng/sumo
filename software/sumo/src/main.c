@@ -83,12 +83,13 @@ void write_motor_task(void *pvParameter) {
 
 void logging_task(void *pvParameter) {
     while(1) {
-        ESP_LOGI(TAG, "%d(%d) %d(%d) %d(%d) %d(%d)",
+        /*ESP_LOGI(TAG, "%d(%d) %d(%d) %d(%d) %d(%d)",
             IR_sensors_values[0], Line_Seen[0],
             IR_sensors_values[1], Line_Seen[1],
             IR_sensors_values[2], Line_Seen[2],
             IR_sensors_values[3], Line_Seen[3]
-        );
+        );*/
+        ESP_LOGI(TAG, "%d %d", Proximity_Sensors[0], Proximity_Sensors[1]);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
@@ -98,7 +99,7 @@ void app_main()
     ESP_LOGI(TAG, "Started");
     rmt_init();
     xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 10, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_light_sensor_task, "read_light_sensor_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 5, NULL);

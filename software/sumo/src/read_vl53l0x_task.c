@@ -1,9 +1,10 @@
 #include "read_vl53l0x_task.h"
 
 static const char* TAG = "VL53L0X_READ";
+uint16_t Proximity_Sensors[SENSORS_NUM] = {0};
 
 void read_vl53l0x_task(void *pvParamter) {
-    struct VL53L0X_Data c[SENSORS_NUM] = {
+    struct VL53L0X_Data sensor_config[SENSORS_NUM] = {
         {
             .port = I2C_NUM,
             .address = 0x29
@@ -22,9 +23,9 @@ void read_vl53l0x_task(void *pvParamter) {
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = 100000;
 
-	ESP_ERROR_CHECK(i2c_param_config(c[0].port, &conf));
+	ESP_ERROR_CHECK(i2c_param_config(sensor_config[0].port, &conf));
 
-    ESP_ERROR_CHECK(i2c_driver_install(c[0].port, I2C_MODE_MASTER, 0, 0, 0));
+    ESP_ERROR_CHECK(i2c_driver_install(sensor_config[0].port, I2C_MODE_MASTER, 0, 0, 0));
 
     gpio_pad_select_gpio(POWER_CONTROL_PIN);
     gpio_set_direction(POWER_CONTROL_PIN, GPIO_MODE_OUTPUT);
@@ -39,34 +40,34 @@ void read_vl53l0x_task(void *pvParamter) {
 
     TickType_t start_ticks = xTaskGetTickCount();
     while(1) {
-        if (setAddress(&c[sensor_count], 0x10+sensor_count) == ESP_OK) {
+        if (setAddress(&sensor_config[sensor_count], 0x10+sensor_count) == ESP_OK) {
             ESP_LOGI(TAG, "Found sensor, readdressed to %.2x", 0x10+sensor_count);
             sensor_count++;
         }
         
         if ((xTaskGetTickCount() - start_ticks) * portTICK_PERIOD_MS > 1000) {
-            ESP_LOGI(TAG, "Timed out");
+            ESP_LOGI(TAG, "Identified %d VL53L0X sensors", sensor_count);
             break;
         }
     }
 
     for (uint8_t i = 0; i < sensor_count; i++) {
-        if (vl53l0x_init(&c[i]) != ESP_OK) {
-            ESP_LOGI(TAG, "Failed to initialise %.2x", c[i].address);
+        if (vl53l0x_init(&sensor_config[i]) != ESP_OK) {
+            ESP_LOGI(TAG, "Failed to initialise %.2x", sensor_config[i].address);
             continue;
         }
 
-        startContinuous(&c[i]);
+        startContinuous(&sensor_config[i]);
     }
-
-    uint16_t r0 = 0, r1 = 0;
+    
+    uint16_t range = 0;
     while(1) {
-        if (
-            readRangeContinuousMillimeters(&c[0], &r0) == ESP_OK &&
-            readRangeContinuousMillimeters(&c[1], &r1) == ESP_OK
-        ) {
-            ESP_LOGI(TAG, "%d %d", r0, r1);
+        for (uint8_t i = 0; i < sensor_count; i++) {
+            if (readRangeContinuousMillimeters(&sensor_config[i], &range) == ESP_OK) {
+                Proximity_Sensors[i] = range;
+            }
         }
-        vTaskDelay(50/portTICK_PERIOD_MS);
+
+        taskYIELD();
     }
 }
