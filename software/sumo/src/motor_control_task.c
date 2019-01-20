@@ -93,21 +93,25 @@ void speed_isr_init() {
     gpio_isr_handler_add(MOTOR_RIGHT_SPEED_NUM, gpio_isr_handler, (void*) 1);
 }
 
+void update_motors() {    
+    for (uint8_t i = 0; i < MOTOR_CHANNELS_NUM; i++) {
+        if ((esp_timer_get_time() - Motors[i].last_dir_change) < DIR_CHANGE_DEAD_TIME) {
+            ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0);
+        } else {
+            ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, Motors[i].speed);
+        }
+        ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
+    }
+    gpio_set_level(MOTOR_LEFT_DIR_NUM, Motors[0].dir);
+    gpio_set_level(MOTOR_RIGHT_DIR_NUM, Motors[1].dir);
+}
+
 void motor_control_task(void *pvParameter) {
     motor_control_init();
     speed_isr_init();
 
     while(1) {
-        for (uint8_t i = 0; i < MOTOR_CHANNELS_NUM; i++) {
-            if ((esp_timer_get_time() - Motors[i].last_dir_change) < DIR_CHANGE_DEAD_TIME) {
-                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, 0);
-            } else {
-                ledc_set_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel, Motors[i].speed);
-            }
-            ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
-        }
-        gpio_set_level(MOTOR_LEFT_DIR_NUM, Motors[0].dir);
-        gpio_set_level(MOTOR_RIGHT_DIR_NUM, Motors[1].dir);
+        update_motors();
         vTaskDelay(1);
     }
 }
