@@ -15,6 +15,7 @@
 #define IR_THRESHOLD 500
 
 void read_light_sensor_task(void *pvParameter);
+void update_light_sensors();
 
 // 1 for white seen, 0 for black
 extern uint8_t Line_Seen[IR_CHANNELS_NUM];

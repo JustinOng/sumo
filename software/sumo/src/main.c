@@ -49,6 +49,8 @@ void write_motor_task(void *pvParameter) {
 
         //ESP_LOGI(TAG, "l: %d, r: %d", left_state, right_state);
 
+        update_light_sensors();
+
         set_motor_dir(0, left_state < 0 ? 1 : 0);
         // if line sensors see the boundary and we're trying to move in that direction,
         // zero out the speed
@@ -75,7 +77,7 @@ void write_motor_task(void *pvParameter) {
             set_motor_brake(1, 0);
         }
 
-        vTaskDelay(1);
+        taskYIELD();
     }
 }
 

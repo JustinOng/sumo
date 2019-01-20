@@ -37,17 +37,20 @@ void read_light_sensor_task(void *pvParameter) {
     }
 
     while(1) {
-        for(uint8_t i = 0; i < IR_CHANNELS_NUM; i++) {
-            IR_sensors_values[i] = read_adc(channels[i], IR_SAMPLE_NUM);
-            // if the current value is more than IR_THRESHOLD below the base value
-            // treat it as white seen
-            if (IR_sensors_base_values[i] > (IR_sensors_values[i] + IR_THRESHOLD)) {
-                Line_Seen[i] = 1;
-            } else {
-                Line_Seen[i] = 0;
-            }
-        }
-
+        update_light_sensors();
         vTaskDelay(1);
+    }
+}
+
+void update_light_sensors() {
+    for(uint8_t i = 0; i < IR_CHANNELS_NUM; i++) {
+        IR_sensors_values[i] = read_adc(channels[i], IR_SAMPLE_NUM);
+        // if the current value is more than IR_THRESHOLD below the base value
+        // treat it as white seen
+        if (IR_sensors_base_values[i] > (IR_sensors_values[i] + IR_THRESHOLD)) {
+            Line_Seen[i] = 1;
+        } else {
+            Line_Seen[i] = 0;
+        }
     }
 }
