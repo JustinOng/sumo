@@ -28,8 +28,11 @@ void read_vl53l0x_task(void *pvParamter) {
 
     gpio_pad_select_gpio(POWER_CONTROL_PIN);
     gpio_set_direction(POWER_CONTROL_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(POWER_CONTROL_PIN, 1);
 
+    gpio_set_level(POWER_CONTROL_PIN, 0);
+    vTaskDelay(100/portTICK_PERIOD_MS);
+
+    gpio_set_level(POWER_CONTROL_PIN, 1);
     vTaskDelay(10/portTICK_PERIOD_MS);
 
     uint8_t sensor_count = 0;
