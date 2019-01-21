@@ -8,9 +8,9 @@
 // how many ticks +/- RECEIVER_CENTER is part of the deadzone
 #define RECEIVER_CH_DEADZONE 10
 
-//how much to scale forward channel by
-#define SCALE_FORWARD -1
+// how much to scale forward channel by
+#define SCALE_FORWARD 1
 // how much to scale turn channel by
-#define SCALE_TURN -0.05
+#define SCALE_TURN 0.05
 
 #endif

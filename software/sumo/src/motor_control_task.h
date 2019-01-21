@@ -10,6 +10,9 @@
 #define MIN_MOTOR_SPEED 160
 #define MAX_MOTOR_SPEED 200
 
+// invert motor directions
+#define INVERT_CHANNELS 1
+
 // time(us) to set speed to zero when the direction changes
 #define DIR_CHANGE_DEAD_TIME 100000
 

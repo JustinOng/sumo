@@ -102,8 +102,8 @@ void update_motors() {
         }
         ledc_update_duty(ledc_channel[i].speed_mode, ledc_channel[i].channel);
     }
-    gpio_set_level(MOTOR_LEFT_DIR_NUM, Motors[0].dir);
-    gpio_set_level(MOTOR_RIGHT_DIR_NUM, Motors[1].dir);
+    gpio_set_level(MOTOR_LEFT_DIR_NUM, INVERT_CHANNELS ? !Motors[0].dir : Motors[0].dir);
+    gpio_set_level(MOTOR_RIGHT_DIR_NUM, INVERT_CHANNELS ? !Motors[1].dir : Motors[1].dir);
 }
 
 void motor_control_task(void *pvParameter) {
