@@ -346,7 +346,7 @@ static esp_err_t performSingleRefCalibration(struct VL53L0X_Data* c, uint8_t vhv
     while (data == 0) {
         readRegMulti(c, RESULT_INTERRUPT_STATUS, &data, 1);
         data = data & 0x07;
-        if ((xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS > 100) {
+        if ((xTaskGetTickCount() - start_tick) * portTICK_PERIOD_MS > 200) {
             ESP_LOGI(TAG, "int timed out in performSingleRefCalibration");
             return ESP_FAIL;
         }
