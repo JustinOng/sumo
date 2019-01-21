@@ -7,6 +7,8 @@
 #include "driver/gpio.h"
 #include "vl53l0x_api.h"
 
+#define PROXIMITY_SENSOR_MAX 500
+
 #define I2C_SDA GPIO_NUM_21
 #define I2C_SCL GPIO_NUM_19
 #define I2C_NUM I2C_NUM_0

@@ -37,47 +37,88 @@ int16_t scaleReceiver(uint16_t input) {
 }
 
 void write_motor_task(void *pvParameter) {
+    uint8_t p_rc_mode = 0, rc_mode = 0;
     while(1) {
-        int16_t forward = scaleReceiver(ReceiverChannels[1]);
-        int16_t turn = scaleReceiver(ReceiverChannels[0]) * SCALE_TURN;
+        rc_mode = ReceiverChannels[2] > (RECEIVER_CH_CENTER+RECEIVER_CH_DEADZONE);
 
-        // solve for k in y=0.1*2^(kx)-0.1 where y=40, x=200
-        forward = (forward < 0 ? -1 : 1) * (pow(2, 0.0432 * abs(forward)) - 1) * SCALE_FORWARD;
+        if (rc_mode != p_rc_mode) {
+            ESP_LOGI(TAG, "RC mode: %d", rc_mode)
+            p_rc_mode = rc_mode;
+        }
+        if (!rc_mode) {
+            int16_t speed_left = 0, speed_right = 0;
 
-        int16_t left_state = forward + turn;
-        int16_t right_state = forward - turn;
+            // at least one of the proximity sensors don't see anything
+            // if left: turn right
+            // if right: turn left
+            // if both: turn right
+            if (
+                (Proximity_Sensors[0] > PROXIMITY_SENSOR_MAX) ||
+                (Proximity_Sensors[1] > PROXIMITY_SENSOR_MAX)
+            ) {
+                if (Proximity_Sensors[1] > PROXIMITY_SENSOR_MAX) {
+                    speed_right = 10;
+                } else {
+                    speed_left = 10;
+                }
+            } else {
+                // both sensors see something.
+                speed_left = (Proximity_Sensors[0]) * 0.3;
+                speed_right = (Proximity_Sensors[1]) * 0.3;
+            }
 
-        //ESP_LOGI(TAG, "l: %d, r: %d", left_state, right_state);
+            speed_left = (int16_t) fmin(10, abs(speed_left)) * 0.1 * (speed_left < 0 ? -1 : 1);
+            speed_right = (int16_t) fmin(10, abs(speed_right)) * 0.1 * (speed_right < 0  ? -1 : 1);
+            
+            set_motor_dir(0, speed_left < 0 ? 1 : 0);
+            set_motor_speed(0, abs(speed_left));
 
-        update_light_sensors();
-
-        set_motor_dir(0, left_state < 0 ? 1 : 0);
-        // if line sensors see the boundary and we're trying to move in that direction,
-        // zero out the speed
-        if (
-            (Line_Seen[FRONT_LEFT] && left_state < 0) ||
-            (Line_Seen[REAR_LEFT] && left_state > 0)
-        ) {
-            set_motor_speed(0, 0);
-            set_motor_brake(0, 1);
+            set_motor_dir(1, speed_right < 0 ? 1 : 0);
+            set_motor_speed(1, abs(speed_right));
         } else {
-            set_motor_speed(0, abs(left_state));
-            set_motor_brake(0, 0);
+            int16_t forward = scaleReceiver(ReceiverChannels[1]);
+            int16_t turn = scaleReceiver(ReceiverChannels[0]) * SCALE_TURN;
+
+            // solve for k in y=0.1*2^(kx)-0.1 where y=40, x=200
+            forward = (forward < 0 ? -1 : 1) * (pow(2, 0.0432 * abs(forward)) - 1) * SCALE_FORWARD;
+
+            int16_t left_state = forward + turn;
+            int16_t right_state = forward - turn;
+
+            //ESP_LOGI(TAG, "l: %d, r: %d", left_state, right_state);
+
+            update_light_sensors();
+
+            set_motor_dir(0, left_state < 0 ? 1 : 0);
+            // if line sensors see the boundary and we're trying to move in that direction,
+            // zero out the speed
+            if (
+                (Line_Seen[FRONT_LEFT] && left_state < 0) ||
+                (Line_Seen[REAR_LEFT] && left_state > 0)
+            ) {
+                set_motor_speed(0, 0);
+                set_motor_brake(0, 1);
+            } else {
+                set_motor_speed(0, abs(left_state));
+                set_motor_brake(0, 0);
+            }
+
+            set_motor_dir(1, right_state < 0 ? 1 : 0);
+            if (
+                (Line_Seen[FRONT_RIGHT] && right_state < 0) ||
+                (Line_Seen[REAR_RIGHT] && right_state > 0)
+            ) {
+                set_motor_speed(1, 0);
+                set_motor_brake(1, 1);
+            } else {
+                set_motor_speed(1, abs(right_state));
+                set_motor_brake(1, 0);
+            }
+
+            update_motors();
         }
 
-        set_motor_dir(1, right_state < 0 ? 1 : 0);
-        if (
-            (Line_Seen[FRONT_RIGHT] && right_state < 0) ||
-            (Line_Seen[REAR_RIGHT] && right_state > 0)
-        ) {
-            set_motor_speed(1, 0);
-            set_motor_brake(1, 1);
-        } else {
-            set_motor_speed(1, abs(right_state));
-            set_motor_brake(1, 0);
-        }
-
-        taskYIELD();
+        vTaskDelay(1);
     }
 }
 
@@ -99,8 +140,8 @@ void app_main()
     ESP_LOGI(TAG, "Started");
     rmt_init();
     xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 10, NULL);
+    xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
     xTaskCreate(&read_light_sensor_task, "read_light_sensor_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 5, NULL);
 }
