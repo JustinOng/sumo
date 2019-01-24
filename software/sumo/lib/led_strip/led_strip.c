@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define LED_STRIP_BIT_1_NOPS_HIGH 15
-#define LED_STRIP_BIT_1_NOPS_LOW  13
-#define LED_STRIP_BIT_0_NOPS_HIGH 10
+#define LED_STRIP_BIT_1_NOPS_HIGH 13
+#define LED_STRIP_BIT_1_NOPS_LOW  6
+#define LED_STRIP_BIT_0_NOPS_HIGH 6
 #define LED_STRIP_BIT_0_NOPS_LOW  13
 
 #define LED_STRIP_TASK_SIZE 	1024
@@ -161,12 +161,13 @@ bool led_strip_init(struct led_strip_t *led_strip)
     memset(led_strip->led_strip_buf_1, 0, sizeof(struct led_color_t) * led_strip->led_strip_length);
 	memset(led_strip->led_strip_buf_2, 0, sizeof(struct led_color_t) * led_strip->led_strip_length);
 
-	BaseType_t task_created = xTaskCreate(led_strip_task,
+	BaseType_t task_created = xTaskCreatePinnedToCore(led_strip_task,
 							  				"led_strip_task",
 							  				LED_STRIP_TASK_SIZE,
 							  				led_strip,
 							  				LED_STRIP_TASK_PRIORITY,
-							  				&led_strip_task_handle
+							  				&led_strip_task_handle,
+											1
 						  				 );
 
 	if (!task_created) {

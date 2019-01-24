@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define LED_STRIP_REFRESH_PERIOD_MS 30
+#define LED_STRIP_REFRESH_PERIOD_MS 100
 
 enum rgb_led_type_t {
 	// GRB

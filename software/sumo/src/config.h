@@ -13,4 +13,6 @@
 // how much to scale turn channel by
 #define SCALE_TURN 0.05
 
+#define LED_STRIP_LENGTH 4U
+
 #endif
