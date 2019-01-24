@@ -11,6 +11,8 @@
 #include "motor_control_task.h"
 #include "read_vl53l0x_task.h"
 #include "read_light_sensor_task.h"
+#include "driver/gpio.h"
+#include "led_strip.h"
 
 static const char* TAG = "main";
 
@@ -135,11 +137,56 @@ void logging_task(void *pvParameter) {
     }
 }
 
+void lighting_task(void *pvParameter) {
+    static struct led_color_t led_strip_buf_1[LED_STRIP_LENGTH];
+    static struct led_color_t led_strip_buf_2[LED_STRIP_LENGTH];
+
+    gpio_config_t gpio_cfg = {
+        .pin_bit_mask = GPIO_SEL_0,
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+
+    gpio_config(&gpio_cfg);
+
+    struct led_strip_t led_strip = {
+        .pin_num = GPIO_NUM_0,
+        .rgb_led_type = RGB_LED_TYPE_WS2812,
+        .led_strip_buf_1 = led_strip_buf_1,
+        .led_strip_buf_2 = led_strip_buf_2,
+        .led_strip_length = LED_STRIP_LENGTH
+    };
+
+    bool led_init_ok = led_strip_init(&led_strip);
+
+    if (!led_init_ok) {
+        ESP_LOGI(TAG, "Failed to init LEDs");
+        vTaskDelete(NULL);
+    }
+
+    struct led_color_t led_color = {
+        .red = 0,
+        .green = 0,
+        .blue = 255,
+    };
+
+    led_strip_set_pixel_color(&led_strip, 0, &led_color);
+    led_strip_set_pixel_color(&led_strip, 1, &led_color);
+    led_strip_set_pixel_color(&led_strip, 2, &led_color);
+    led_strip_set_pixel_color(&led_strip, 3, &led_color);
+    led_strip_show(&led_strip);
+    ESP_LOGI(TAG, "LED init ok");
+    vTaskDelete(NULL);
+}
+
 void app_main()
 {
     ESP_LOGI(TAG, "Started");
     rmt_init();
-    xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
+    //xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&lighting_task, "lighting_task", 2048, NULL, 5, NULL);
     xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
