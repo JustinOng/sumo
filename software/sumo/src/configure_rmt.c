@@ -37,7 +37,7 @@ static void IRAM_ATTR rmt_isr_handler(void* arg){
         RMT.conf_ch[channel].conf1.mem_owner = RMT_MEM_OWNER_TX;
         volatile rmt_item32_t* item = RMTMEM.chan[channel].data32;
         if (item) {
-            ReceiverChannels[channel] = item->duration0;
+            ReceiverChannels[i] = item->duration0;
         }
 
         RMT.conf_ch[channel].conf1.mem_wr_rst = 1;
