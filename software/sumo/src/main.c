@@ -158,6 +158,6 @@ void app_main()
     xTaskCreate(&lighting_task, "lighting_task", 2048, NULL, 5, NULL);
     xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
-    xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 2048, NULL, 5, NULL);
+    xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 4096, NULL, 5, NULL);
     xTaskCreate(&read_light_sensor_task, "read_light_sensor_task", 2048, NULL, 5, NULL);
 }
