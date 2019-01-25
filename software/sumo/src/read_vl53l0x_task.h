@@ -19,6 +19,7 @@
 #define POWER_CONTROL_PIN GPIO_NUM_22
 
 extern uint16_t Proximity_Sensors[SENSORS_NUM];
+extern uint8_t Sensor_Ok[SENSORS_NUM];
 
 void read_vl53l0x_task(void *pvParamter);
 

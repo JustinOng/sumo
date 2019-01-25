@@ -139,14 +139,31 @@ void logging_task(void *pvParameter) {
 
 void lighting_task(void *pvParameter) {
     rgbVal pixels[4];
+    while(1) {
+        pixels[0].r = 50;
 
-    pixels[0].r = 255;
-    pixels[1].g = 255;
-    pixels[2].b = 255;
-    pixels[3].r = 255;
-    
-    ws2812_setColors(4, pixels);
-    vTaskDelete(NULL);
+        for(uint8_t i = 1; i <= 2; i ++) {
+            uint8_t sensor_num = i - 1;
+            if (!Sensor_Ok[sensor_num]) {
+                pixels[i].r = 128;
+                pixels[i].g = 0;
+            } else {
+                uint16_t val = Proximity_Sensors[sensor_num];
+
+                if (val > PROXIMITY_SENSOR_MAX) val = PROXIMITY_SENSOR_MAX;
+
+                pixels[i].r = 0;
+                pixels[i].g = (PROXIMITY_SENSOR_MAX - val) * 255 / PROXIMITY_SENSOR_MAX;
+                ESP_LOGI(TAG, "%d %d", pixels[i].g, val);
+            }
+        }
+
+        pixels[3].r = 50;
+        
+        ws2812_setColors(4, pixels);
+
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
 }
 
 void app_main()

@@ -2,6 +2,7 @@
 
 static const char* TAG = "VL53L0X_READ";
 uint16_t Proximity_Sensors[SENSORS_NUM] = {0};
+uint8_t Sensor_Ok[SENSORS_NUM] = {0};
 
 void read_vl53l0x_task(void *pvParamter) {
     struct VL53L0X_Data sensor_config[SENSORS_NUM] = {
@@ -37,6 +38,7 @@ void read_vl53l0x_task(void *pvParamter) {
         sensor_count = 0;
         for(uint8_t u = 0; u < SENSORS_NUM; u++) {
             sensor_config[u].address = 0x29;
+            Sensor_Ok[u] = 0;
         }
 
         ESP_LOGI(TAG, "Initialising sensors...");
@@ -71,6 +73,7 @@ void read_vl53l0x_task(void *pvParamter) {
                 break;
             }
 
+            Sensor_Ok[i] = 1;
             startContinuous(&sensor_config[i]);
         }
 
