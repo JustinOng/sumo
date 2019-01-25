@@ -33,7 +33,13 @@ void read_vl53l0x_task(void *pvParamter) {
     uint8_t sensor_count = 0;
     uint8_t init_successful = 0;
 
-    for(uint8_t i = 0; i < 3; i++) {
+    while(init_successful == 0) {
+        sensor_count = 0;
+        for(uint8_t u = 0; u < SENSORS_NUM; u++) {
+            sensor_config[u].address = 0x29;
+        }
+
+        ESP_LOGI(TAG, "Initialising sensors...");
         gpio_set_level(POWER_CONTROL_PIN, 0);
         vTaskDelay(500/portTICK_PERIOD_MS);
 
@@ -73,8 +79,6 @@ void read_vl53l0x_task(void *pvParamter) {
         init_successful = 1;
         break;
     }
-
-    if (!init_successful) vTaskDelete(NULL);
     
     uint16_t range = 0;
     while(1) {
