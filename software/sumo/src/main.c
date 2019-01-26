@@ -17,6 +17,7 @@
 static const char* TAG = "main";
 
 int16_t scaleReceiver(uint16_t input) {
+#define FORCE_RANGE(val, range) (fmin(range, abs(val)) * (val < 0 ? -1 : 1))
     // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_CENTER
     // and returns direction and speed
     // map function taken from https://www.arduino.cc/reference/en/language/functions/math/map/
@@ -39,7 +40,11 @@ int16_t scaleReceiver(uint16_t input) {
 }
 
 void write_motor_task(void *pvParameter) {
+    uint8_t rc_mode_entered = 0;
     uint8_t p_rc_mode = 0, rc_mode = 0;
+
+    uint32_t sum_distance = 0;
+    uint16_t samples = 0;
     while(1) {
         rc_mode = ReceiverChannels[2] > (RECEIVER_CH_CENTER+RECEIVER_CH_DEADZONE);
 
@@ -47,7 +52,14 @@ void write_motor_task(void *pvParameter) {
             ESP_LOGI(TAG, "RC mode: %d", rc_mode)
             p_rc_mode = rc_mode;
         }
-        if (!rc_mode) {
+
+        if (rc_mode) {
+            rc_mode_entered = 1;
+            sum_distance = 0;
+            samples = 0;
+        }
+
+        if (!rc_mode && rc_mode_entered) {
             int16_t speed_left = 0, speed_right = 0;
 
             // at least one of the proximity sensors don't see anything
@@ -59,18 +71,32 @@ void write_motor_task(void *pvParameter) {
                 (Proximity_Sensors[1] > PROXIMITY_SENSOR_MAX)
             ) {
                 if (Proximity_Sensors[1] > PROXIMITY_SENSOR_MAX) {
-                    speed_right = 10;
+                    speed_left = -1;
+                    speed_right = 2;
                 } else {
-                    speed_left = 10;
+                    speed_left = 2;
+                    speed_right = -1;
                 }
             } else {
                 // both sensors see something.
-                speed_left = (Proximity_Sensors[0]) * 0.3;
-                speed_right = (Proximity_Sensors[1]) * 0.3;
+                uint16_t ave_distance = sum_distance / (samples > 0 ? samples : 1);
+                int16_t base_speed = ave_distance < 50 ? 70 : ave_distance < 70 ? 50 : 1    0;
+                speed_left = base_speed + Proximity_Sensors[1] * 0.02;
+                speed_right = base_speed + Proximity_Sensors[2] * 0.02;
+
+                sum_distance += Proximity_Sensors[1] + Proximity_Sensors[2];
+                samples += 2;
+
+                while(samples > 32) {
+                    sum_distance -= sum_distance / samples;
+                    samples--;
+                }
             }
 
-            speed_left = (int16_t) fmin(10, abs(speed_left)) * 0.1 * (speed_left < 0 ? -1 : 1);
-            speed_right = (int16_t) fmin(10, abs(speed_right)) * 0.1 * (speed_right < 0  ? -1 : 1);
+            speed_left = (int16_t) FORCE_RANGE(speed_left, 100);
+            speed_right = (int16_t) FORCE_RANGE(speed_right, 100);
+
+            ESP_LOGI(TAG, "left: %d right: %d distance: %d", speed_left, speed_right, sum_distance / (samples > 0 ? samples : 1));
             
             set_motor_dir(0, speed_left < 0 ? 1 : 0);
             set_motor_speed(0, abs(speed_left));
