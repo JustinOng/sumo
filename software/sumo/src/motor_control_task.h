@@ -7,7 +7,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
-#define MIN_MOTOR_SPEED 160
+#define MIN_MOTOR_SPEED 158
 #define MAX_MOTOR_SPEED 200
 
 // invert motor directions
