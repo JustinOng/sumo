@@ -16,13 +16,12 @@
 
 static const char* TAG = "main";
 
-int16_t scaleReceiver(uint16_t input) {
 #define FORCE_RANGE(val, range) (fmin(range, abs(val)) * (val < 0 ? -1 : 1))
+
+int16_t scaleReceiver(uint16_t input, int16_t out_min, int16_t out_max) {
     // takes in a value from RECEIVER_CH_MIN to RECEIVER_CH_MAX centered on RECEIVER_CH_CENTER
     // and returns direction and speed
     // map function taken from https://www.arduino.cc/reference/en/language/functions/math/map/
-    const int16_t out_min = -MAX_MOTOR_SPEED;
-    const int16_t out_max = MAX_MOTOR_SPEED;
 
     // if input out of range force it to be within
     if (input < RECEIVER_CH_MIN) {
@@ -104,8 +103,8 @@ void write_motor_task(void *pvParameter) {
             set_motor_dir(1, speed_right < 0 ? 1 : 0);
             set_motor_speed(1, abs(speed_right));
         } else {
-            int16_t forward = scaleReceiver(ReceiverChannels[1]);
-            int16_t turn = scaleReceiver(ReceiverChannels[0]) * SCALE_TURN;
+            int16_t forward = scaleReceiver(ReceiverChannels[1], -MAX_MOTOR_SPEED, MAX_MOTOR_SPEED);
+            int16_t turn = scaleReceiver(ReceiverChannels[0], -MAX_MOTOR_SPEED, MAX_MOTOR_SPEED) * SCALE_TURN;
 
             // solve for k in y=0.1*2^(kx)-0.1 where y=40, x=200
             forward = (forward < 0 ? -1 : 1) * (pow(2, 0.0432 * abs(forward)) - 1) * SCALE_FORWARD;
