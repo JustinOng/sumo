@@ -41,9 +41,8 @@ int16_t scaleReceiver(uint16_t input, int16_t out_min, int16_t out_max) {
 void write_motor_task(void *pvParameter) {
     uint8_t rc_mode_entered = 0;
     uint8_t p_rc_mode = 0, rc_mode = 0;
-
-    uint32_t sum_distance = 0;
-    uint16_t samples = 0;
+    int64_t last_seen_at = 0;
+    
     while(1) {
         rc_mode = ReceiverChannels[2] > (RECEIVER_CH_CENTER+RECEIVER_CH_DEADZONE);
 
@@ -54,48 +53,69 @@ void write_motor_task(void *pvParameter) {
 
         if (rc_mode) {
             rc_mode_entered = 1;
-            sum_distance = 0;
-            samples = 0;
         }
 
         if (!rc_mode && rc_mode_entered) {
             int16_t speed_left = 0, speed_right = 0;
 
-            // at least one of the proximity sensors don't see anything
-            // if left: turn right
-            // if right: turn left
-            // if both: turn right
-            if (
-                (Proximity_Sensors[0] > PROXIMITY_SENSOR_MAX) ||
-                (Proximity_Sensors[1] > PROXIMITY_SENSOR_MAX)
-            ) {
-                if (Proximity_Sensors[1] > PROXIMITY_SENSOR_MAX) {
-                    speed_left = -1;
-                    speed_right = 2;
-                } else {
-                    speed_left = 2;
-                    speed_right = -1;
+            uint8_t seen[SENSORS_NUM] = {0};
+
+            for(uint8_t i = 0; i < SENSORS_NUM; i++) {
+                seen[i] = Proximity_Sensors_Raw[i] < PROXIMITY_SENSOR_MAX;
+
+                if (seen[i]) {
+                    last_seen_at = esp_timer_get_time();
                 }
-            } else {
-                // both sensors see something.
-                uint16_t ave_distance = sum_distance / (samples > 0 ? samples : 1);
-                int16_t base_speed = ave_distance < 50 ? 70 : ave_distance < 70 ? 50 : 1    0;
+            }
+
+            if (seen[1] && seen[2]) {
+                // either of the two center sensors see something, while the two outer sensors
+                // dont see anything
+                uint16_t ave_distance = (Proximity_Sensors[1] + Proximity_Sensors[2]) / 2;
+                int16_t base_speed = 1;
+                
+                if (ave_distance < 50) base_speed = 50;
+                else if (ave_distance < 70) base_speed = 20;
+                else if (ave_distance < 100) base_speed = 10;
+                else if (ave_distance < 200) base_speed = 3;
+                
                 speed_left = base_speed + Proximity_Sensors[1] * 0.02;
                 speed_right = base_speed + Proximity_Sensors[2] * 0.02;
+                ESP_LOGI(TAG, "Both sensors see");
+            } else if (!seen[0] || !seen[1]) {
+                // at least one of the left sensors don't see anything
+                // turn right
+                speed_left = 2;
+                speed_right = -1;
 
-                sum_distance += Proximity_Sensors[1] + Proximity_Sensors[2];
-                samples += 2;
-
-                while(samples > 32) {
-                    sum_distance -= sum_distance / samples;
-                    samples--;
+                // if left most sensor dosent see anything, turn faster
+                if (!seen[0]) {
+                    speed_left += 2;
                 }
+                ESP_LOGI(TAG, "Turn right");
+            } else if (!seen[2] || !seen[3]) {
+                // at least one of the right sensors don't see anything
+                // turn left
+                speed_left = -1;
+                speed_right = 2;
+
+                // if left most sensor dosent see anything, turn faster
+                if (!seen[3]) {
+                    speed_right += 2;
+                }
+                ESP_LOGI(TAG, "Turn left");
+            } else if ((esp_timer_get_time() - last_seen_at) < 2000000) {
+                speed_left = 5;
+                speed_right = -5;
+            } else {
+                speed_left = 8;
+                speed_right = -8;
             }
 
             speed_left = (int16_t) FORCE_RANGE(speed_left, 100);
             speed_right = (int16_t) FORCE_RANGE(speed_right, 100);
 
-            ESP_LOGI(TAG, "left: %d right: %d distance: %d", speed_left, speed_right, sum_distance / (samples > 0 ? samples : 1));
+            ESP_LOGI(TAG, "l: %d, r: %d", speed_left, speed_right);
             
             set_motor_dir(0, speed_left < 0 ? 1 : 0);
             set_motor_speed(0, abs(speed_left));
@@ -157,7 +177,7 @@ void logging_task(void *pvParameter) {
             IR_sensors_values[2], Line_Seen[2],
             IR_sensors_values[3], Line_Seen[3]
         );*/
-        ESP_LOGI(TAG, "%d %d", Proximity_Sensors[0], Proximity_Sensors[1]);
+        ESP_LOGI(TAG, "%d %d %d %d", Proximity_Sensors[0], Proximity_Sensors[1], Proximity_Sensors[2], Proximity_Sensors[3]);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
@@ -179,7 +199,6 @@ void lighting_task(void *pvParameter) {
 
                 pixels[i].r = 0;
                 pixels[i].g = (PROXIMITY_SENSOR_MAX - val) * 255 / PROXIMITY_SENSOR_MAX;
-                ESP_LOGI(TAG, "%d %d", pixels[i].g, val);
             }
         }
 
@@ -195,9 +214,9 @@ void app_main()
 {
     ESP_LOGI(TAG, "Started");
     rmt_init();
-    ws2812_init(0);
-    //xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
-    xTaskCreate(&lighting_task, "lighting_task", 2048, NULL, 5, NULL);
+    //ws2812_init(0);
+    xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
+    //xTaskCreate(&lighting_task, "lighting_task", 2048, NULL, 5, NULL);
     xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 4096, NULL, 5, NULL);

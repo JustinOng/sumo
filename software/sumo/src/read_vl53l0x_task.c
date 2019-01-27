@@ -2,7 +2,11 @@
 
 static const char* TAG = "VL53L0X_READ";
 uint16_t Proximity_Sensors[SENSORS_NUM] = {0};
+uint16_t Proximity_Sensors_Raw[SENSORS_NUM] = {0};
 uint8_t Sensor_Ok[SENSORS_NUM] = {0};
+
+uint32_t sum_distance[SENSORS_NUM] = {0};
+uint16_t samples[SENSORS_NUM] = {0};
 
 void read_vl53l0x_task(void *pvParamter) {
     struct VL53L0X_Data sensor_config[SENSORS_NUM] = {
@@ -87,7 +91,21 @@ void read_vl53l0x_task(void *pvParamter) {
     while(1) {
         for (uint8_t i = 0; i < sensor_count; i++) {
             if (readRangeContinuousMillimeters(&sensor_config[i], &range) == ESP_OK) {
-                Proximity_Sensors[i] = range;
+                if (range < PROXIMITY_SENSOR_MAX) {
+                    sum_distance[i] += range;
+                    samples[i] ++;
+
+                    while(samples[i] > PROXIMITY_SENSOR_SAMPLES) {
+                        sum_distance[i] -= sum_distance[i] / (samples[i] > 0 ? samples[i] : 1);
+                        samples[i] --;
+                    }
+                    Proximity_Sensors[i] = sum_distance[i] / (samples[i] > 0 ? samples[i] : 1);
+                } else {
+                    sum_distance[i] -= sum_distance[i] / (samples[i] > 0 ? samples[i] : 1);
+                    samples[i] --;
+                }
+
+                Proximity_Sensors_Raw[i] = range;
             }
         }
 
