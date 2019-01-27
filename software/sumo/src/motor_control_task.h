@@ -43,6 +43,11 @@ typedef struct {
     uint16_t speed;
 } MotorState;
 
+enum Motor {
+    MOTOR_LEFT = 0,
+    MOTOR_RIGHT
+};
+
 extern volatile uint64_t last_pulse;
 extern volatile uint64_t last_pulse_length;
 
