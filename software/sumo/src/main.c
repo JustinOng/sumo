@@ -42,6 +42,7 @@ void write_motor_task(void *pvParameter) {
     uint8_t rc_mode_entered = 0;
     uint8_t p_rc_mode = 0, rc_mode = 0;
     int64_t last_seen_at = 0;
+    int64_t went_out_at[2] = {0};
     
     while(1) {
         rc_mode = ReceiverChannels[2] > (RECEIVER_CH_CENTER+RECEIVER_CH_DEADZONE);
@@ -136,30 +137,40 @@ void write_motor_task(void *pvParameter) {
 
             update_light_sensors();
 
-            set_motor_dir(0, left_state < 0 ? 1 : 0);
             // if line sensors see the boundary and we're trying to move in that direction,
             // zero out the speed
-            if (
-                (Line_Seen[FRONT_LEFT] && left_state < 0) ||
-                (Line_Seen[REAR_LEFT] && left_state > 0)
-            ) {
-                set_motor_speed(0, 0);
-                set_motor_brake(0, 1);
+            if ((Line_Seen[FRONT_LEFT] && left_state > 0) || went_out_at[MOTOR_LEFT] > 0) {
+                if (went_out_at[MOTOR_LEFT] == 0) {
+                    went_out_at[MOTOR_LEFT] = esp_timer_get_time();
+                }
+
+                if ((esp_timer_get_time() - went_out_at[MOTOR_LEFT]) < 500000) {
+                    set_motor_speed(MOTOR_LEFT, 1);
+                    set_motor_dir(MOTOR_LEFT, 1);
+                } else {
+                    went_out_at[MOTOR_LEFT] = 0;
+                }
             } else {
-                set_motor_speed(0, abs(left_state));
-                set_motor_brake(0, 0);
+                set_motor_dir(MOTOR_LEFT, left_state < 0 ? 1 : 0);
+                set_motor_speed(MOTOR_LEFT, abs(left_state));
+                set_motor_brake(MOTOR_LEFT, 0);
             }
 
-            set_motor_dir(1, right_state < 0 ? 1 : 0);
-            if (
-                (Line_Seen[FRONT_RIGHT] && right_state < 0) ||
-                (Line_Seen[REAR_RIGHT] && right_state > 0)
-            ) {
-                set_motor_speed(1, 0);
-                set_motor_brake(1, 1);
+            if ((Line_Seen[FRONT_RIGHT] && right_state > 0) || went_out_at[MOTOR_RIGHT] > 0) {
+                if (went_out_at[MOTOR_RIGHT] == 0) {
+                    went_out_at[MOTOR_RIGHT] = esp_timer_get_time();
+                }
+
+                if ((esp_timer_get_time() - went_out_at[1]) < 500000) {
+                    set_motor_speed(MOTOR_RIGHT, 1);
+                    set_motor_dir(MOTOR_RIGHT, 1);
+                } else {
+                    went_out_at[MOTOR_RIGHT] = 0;
+                }
             } else {
-                set_motor_speed(1, abs(right_state));
-                set_motor_brake(1, 0);
+                set_motor_speed(MOTOR_RIGHT, abs(right_state));
+                set_motor_brake(MOTOR_RIGHT, 0);
+                set_motor_dir(MOTOR_RIGHT, right_state < 0 ? 1 : 0);
             }
 
             update_motors();
@@ -171,13 +182,13 @@ void write_motor_task(void *pvParameter) {
 
 void logging_task(void *pvParameter) {
     while(1) {
-        /*ESP_LOGI(TAG, "%d(%d) %d(%d) %d(%d) %d(%d)",
+        ESP_LOGI(TAG, "%d(%d) %d(%d) %d(%d) %d(%d)",
             IR_sensors_values[0], Line_Seen[0],
             IR_sensors_values[1], Line_Seen[1],
             IR_sensors_values[2], Line_Seen[2],
             IR_sensors_values[3], Line_Seen[3]
-        );*/
-        ESP_LOGI(TAG, "%d %d %d %d", Proximity_Sensors[0], Proximity_Sensors[1], Proximity_Sensors[2], Proximity_Sensors[3]);
+        );
+        //ESP_LOGI(TAG, "%d %d %d %d", Proximity_Sensors[0], Proximity_Sensors[1], Proximity_Sensors[2], Proximity_Sensors[3]);
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
