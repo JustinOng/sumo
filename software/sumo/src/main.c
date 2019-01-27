@@ -12,7 +12,6 @@
 #include "read_vl53l0x_task.h"
 #include "read_light_sensor_task.h"
 #include "driver/gpio.h"
-#include "ws2812.h"
 
 static const char* TAG = "main";
 
@@ -193,41 +192,11 @@ void logging_task(void *pvParameter) {
     }
 }
 
-void lighting_task(void *pvParameter) {
-    rgbVal pixels[4];
-    while(1) {
-        pixels[0].r = 50;
-
-        for(uint8_t i = 1; i <= 2; i ++) {
-            uint8_t sensor_num = i - 1;
-            if (!Sensor_Ok[sensor_num]) {
-                pixels[i].r = 128;
-                pixels[i].g = 0;
-            } else {
-                uint16_t val = Proximity_Sensors[sensor_num];
-
-                if (val > PROXIMITY_SENSOR_MAX) val = PROXIMITY_SENSOR_MAX;
-
-                pixels[i].r = 0;
-                pixels[i].g = (PROXIMITY_SENSOR_MAX - val) * 255 / PROXIMITY_SENSOR_MAX;
-            }
-        }
-
-        pixels[3].r = 50;
-        
-        ws2812_setColors(4, pixels);
-
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-}
-
 void app_main()
 {
     ESP_LOGI(TAG, "Started");
     rmt_init();
-    //ws2812_init(0);
     xTaskCreate(&logging_task, "logging_task", 2048, NULL, 5, NULL);
-    //xTaskCreate(&lighting_task, "lighting_task", 2048, NULL, 5, NULL);
     xTaskCreate(&motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
     xTaskCreate(&write_motor_task, "write_motor_task", 2048, NULL, 10, NULL);
     xTaskCreate(&read_vl53l0x_task, "read_vl53l0x_task", 4096, NULL, 5, NULL);

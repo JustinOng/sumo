@@ -1,5 +1,4 @@
 #include "configure_rmt.h"
-#include "ws2812.h"
 
 // this file configure the RMT for 2 purposes:
 // - Reading the pulse widths of the servo signal from the RC receiver
@@ -14,7 +13,6 @@ const uint8_t RECEIVER_GPIOS[RECEIVER_CHANNELS_NUM] = { 18, 17, 5 };
 static void rmt_isr_handler(void* arg){
     // with reference to https://www.esp32.com/viewtopic.php?t=7116#p32383
     // but modified so that this ISR only checks chX_rx_end
-    ws2812_handleInterrupt(0);
     uint32_t intr_st = RMT.int_st.val;
 
     // see declaration of RMT.int_st:
