@@ -144,7 +144,7 @@ void write_motor_task(void *pvParameter) {
                     went_out_at[MOTOR_LEFT] = esp_timer_get_time();
                 }
 
-                if ((esp_timer_get_time() - went_out_at[MOTOR_LEFT]) < 500000) {
+                if ((esp_timer_get_time() - went_out_at[MOTOR_LEFT]) < 500000 && Line_Seen[FRONT_LEFT]) {
                     set_motor_speed(MOTOR_LEFT, 1);
                     set_motor_dir(MOTOR_LEFT, 1);
                 } else {
@@ -161,7 +161,7 @@ void write_motor_task(void *pvParameter) {
                     went_out_at[MOTOR_RIGHT] = esp_timer_get_time();
                 }
 
-                if ((esp_timer_get_time() - went_out_at[1]) < 500000) {
+                if ((esp_timer_get_time() - went_out_at[1]) < 500000 && Line_Seen[FRONT_RIGHT]) {
                     set_motor_speed(MOTOR_RIGHT, 1);
                     set_motor_dir(MOTOR_RIGHT, 1);
                 } else {
